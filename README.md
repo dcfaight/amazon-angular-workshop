@@ -178,6 +178,21 @@ Status: PASS
 | Lines     | 100%  | PASS   |
 ```
 
+### Coverage Policy (Pragmatic)
+
+We use coverage as a safety floor, not a vanity metric.
+
+1. Keep CI coverage enforcement enabled with `COVERAGE_MIN=95` unless the team explicitly decides to raise it.
+2. Prioritize tests for risk-heavy flows first:
+	- checkout and payment flow behavior
+	- inventory reservation and stock consistency
+	- order status transitions
+	- auth and session boundaries
+3. Allow small, justified gaps in low-value branches (defensive fallbacks, framework glue), and document why in the PR description.
+4. During refactors, prefer characterization tests for behavior changes over chasing global 100% coverage.
+
+If coverage dips below threshold, fix the highest-risk behavior gaps first instead of writing superficial tests.
+
 ## Always Run Latest Main Checklist
 
 Use this quick checklist when rerunning Actions or agents:
