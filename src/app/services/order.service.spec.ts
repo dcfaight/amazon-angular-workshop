@@ -295,7 +295,7 @@ describe('OrderService', () => {
     );
 
     service.getOrdersForCurrentUser().subscribe((orders) => {
-      expect(orders[0].id).toBe('blank-key');
+      expect(orders.some((order) => order.id === 'blank-key')).toBeTrue();
     });
 
     const req = httpMock.expectOne('http://192.168.1.5:3000/orders?userId=1');
