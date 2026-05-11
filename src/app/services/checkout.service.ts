@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { CheckoutConfirmation, CheckoutError, CheckoutRequest } from '../models/checkout';
 import { AppStateService } from './app-state.service';
 import { Product } from '../models/product';
+import { PaymentService } from './payment.service';
 import { ReservationService } from './reservation.service';
 
 interface CheckoutLine {
@@ -14,7 +15,8 @@ interface CheckoutLine {
 export class CheckoutService {
   constructor(
     private appState: AppStateService,
-    private reservationService: ReservationService
+    private reservationService: ReservationService,
+    private paymentService: PaymentService
   ) {}
 
   async placeOrder(request: CheckoutRequest): Promise<CheckoutConfirmation> {
@@ -37,6 +39,11 @@ export class CheckoutService {
       await this.simulateNetworkLatency();
 
       // Step 2: Confirm the reservation (persist stock changes).
+      await this.paymentService.processPayment(request.payment, request.total);
+
+      await this.simulateNetworkLatency();
+
+      // Step 3: Confirm the reservation (persist stock changes).
       await this.reservationService.confirmReservation(reservationId);
 
       await this.simulateNetworkLatency();
@@ -120,11 +127,6 @@ export class CheckoutService {
         availableQuantity,
       });
     }
-  }
-
-  private async reserveStock(lines: CheckoutLine[]): Promise<void> {
-    // Deprecated: now handled by ReservationService
-    throw new Error('Use ReservationService instead');
   }
 
   private async simulateNetworkLatency(): Promise<void> {

@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { CheckoutService } from './checkout.service';
+import { PaymentService } from './payment.service';
 import { ReservationService } from './reservation.service';
 import { AppStateService } from './app-state.service';
 import { CheckoutRequest, CheckoutError } from '../models/checkout';
@@ -8,6 +9,7 @@ import { Product } from '../models/product';
 describe('CheckoutService', () => {
   let service: CheckoutService;
   let reservationService: jasmine.SpyObj<ReservationService>;
+  let paymentService: jasmine.SpyObj<PaymentService>;
   let appState: jasmine.SpyObj<AppStateService>;
 
   const mockProduct = (id: number): Product => ({
@@ -42,16 +44,26 @@ describe('CheckoutService', () => {
       'ReservationService',
       ['validateAndReserve', 'confirmReservation', 'cancelReservation', 'getReservation']
     );
+    paymentService = jasmine.createSpyObj<PaymentService>(
+      'PaymentService',
+      ['processPayment']
+    );
 
     appState = jasmine.createSpyObj<AppStateService>('AppStateService', [], {
       simulateFailuresValue: false,
       simulatedCheckoutFailureModeValue: 'none',
     });
 
+    paymentService.processPayment.and.resolveTo({
+      transactionId: 'PAY-123',
+      processedAtIso: new Date().toISOString(),
+    });
+
     TestBed.configureTestingModule({
       providers: [
         CheckoutService,
         { provide: ReservationService, useValue: reservationService },
+        { provide: PaymentService, useValue: paymentService },
         { provide: AppStateService, useValue: appState },
       ],
     });
@@ -85,6 +97,7 @@ describe('CheckoutService', () => {
       expect(result.etaDays).toBe(3);
 
       expect(reservationService.validateAndReserve).toHaveBeenCalled();
+      expect(paymentService.processPayment).toHaveBeenCalledWith(validRequest.payment, validRequest.total);
       expect(reservationService.confirmReservation).toHaveBeenCalledWith('RES-123-abc');
       expect(reservationService.cancelReservation).not.toHaveBeenCalled();
     });
@@ -108,6 +121,7 @@ describe('CheckoutService', () => {
           jasmine.objectContaining({ productId: 2, quantity: 1 }),
         ])
       );
+      expect(paymentService.processPayment).toHaveBeenCalledWith(multiRequest.payment, multiRequest.total);
     });
   });
 
@@ -128,6 +142,7 @@ describe('CheckoutService', () => {
       );
 
       expect(reservationService.validateAndReserve).not.toHaveBeenCalled();
+      expect(paymentService.processPayment).not.toHaveBeenCalled();
     });
 
     it('should fail with insufficient-stock when mode is stock-changed', async () => {
@@ -146,6 +161,7 @@ describe('CheckoutService', () => {
       );
 
       expect(reservationService.validateAndReserve).not.toHaveBeenCalled();
+      expect(paymentService.processPayment).not.toHaveBeenCalled();
     });
 
     it('should fail with checkout-unavailable when simulate failures is on and mode is none', async () => {
@@ -167,6 +183,28 @@ describe('CheckoutService', () => {
       );
 
       expect(reservationService.validateAndReserve).not.toHaveBeenCalled();
+      expect(paymentService.processPayment).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('payment failure handling', () => {
+    it('should cancel reservation and throw PAYMENT_DECLINED when payment processing fails', async () => {
+      reservationService.validateAndReserve.and.resolveTo('RES-123');
+      const decline = new Error('Card declined');
+      (decline as any).reason = 'PAYMENT_DECLINED';
+      paymentService.processPayment.and.rejectWith(decline);
+
+      await expectAsync(service.placeOrder(validRequest)).toBeRejectedWith(
+        jasmine.objectContaining({
+          failure: jasmine.objectContaining({
+            reason: 'PAYMENT_DECLINED',
+            message: 'Card declined',
+          }),
+        }) as unknown as CheckoutError
+      );
+
+      expect(reservationService.cancelReservation).toHaveBeenCalledWith('RES-123');
+      expect(reservationService.confirmReservation).not.toHaveBeenCalled();
     });
   });
 
@@ -305,6 +343,7 @@ describe('CheckoutService', () => {
       const result = await service.placeOrder(multiItemRequest);
 
       expect(result.itemCount).toBe(3); // Total items, not grouped count
+      expect(paymentService.processPayment).toHaveBeenCalledWith(multiItemRequest.payment, multiItemRequest.total);
     });
 
     it('should set placed timestamp in ISO format', async () => {
