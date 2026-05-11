@@ -113,6 +113,38 @@
   margin: 0 0 1rem;
 }
 
+.filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin: 0 0 1rem;
+}
+
+.filter-chip {
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  background: #fff;
+  color: #1e293b;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.76rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 0.35rem 0.75rem;
+  transition: all 120ms ease;
+
+  &:hover {
+    border-color: #0f766e;
+    color: #0f766e;
+  }
+
+  &.active {
+    border-color: #0f766e;
+    background: #0f766e;
+    color: #fff;
+  }
+}
+
 .state-message {
   padding: 1.2rem;
   color: #475569;

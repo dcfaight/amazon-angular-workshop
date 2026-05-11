@@ -95,6 +95,26 @@ describe('AdminIncidentsComponent', () => {
     expect(component.resolvedIncidents).toBe(1);
   });
 
+  it('should default to all incidents before selecting a filter', () => {
+    expect(component.activeFilter).toBe('all');
+    expect(component.filteredIncidents.length).toBe(2);
+  });
+
+  it('should filter to open incidents only', () => {
+    component.setFilter('open');
+
+    expect(component.isFilterActive('open')).toBeTrue();
+    expect(component.filteredIncidents.length).toBe(1);
+    expect(component.filteredIncidents[0].status).not.toBe('resolved');
+  });
+
+  it('should filter to customer-impact incidents only', () => {
+    component.setFilter('customer-impact');
+
+    expect(component.filteredIncidents.length).toBe(1);
+    expect(component.filteredIncidents[0].hasCustomerImpact).toBeTrue();
+  });
+
   it('should return css classes for severity and status badges', () => {
     expect(component.getSeverityClass(mockIncidents[0])).toBe('severity-pill sev1');
     expect(component.getStatusClass(mockIncidents[0])).toBe('status-pill mitigating');

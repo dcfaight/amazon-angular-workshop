@@ -44,6 +44,41 @@
     Last refreshed {{ lastRefreshedAt | date: 'medium' }}
   </p>
 
+  <div *ngIf="!loading && !errorMessage && incidents.length" class="filter-row" aria-label="Incident filters">
+    <button
+      type="button"
+      class="filter-chip"
+      [class.active]="isFilterActive('all')"
+      (click)="setFilter('all')"
+    >
+      All
+    </button>
+    <button
+      type="button"
+      class="filter-chip"
+      [class.active]="isFilterActive('open')"
+      (click)="setFilter('open')"
+    >
+      Open Only
+    </button>
+    <button
+      type="button"
+      class="filter-chip"
+      [class.active]="isFilterActive('critical')"
+      (click)="setFilter('critical')"
+    >
+      SEV1 / SEV2
+    </button>
+    <button
+      type="button"
+      class="filter-chip"
+      [class.active]="isFilterActive('customer-impact')"
+      (click)="setFilter('customer-impact')"
+    >
+      Customer Impact
+    </button>
+  </div>
+
   <p *ngIf="loading" class="state-message">Loading incidents from GitHub...</p>
 
   <div *ngIf="errorMessage && !loading" class="state-card error" role="alert">
@@ -59,8 +94,13 @@
     </a>
   </div>
 
-  <div *ngIf="!loading && !errorMessage && incidents.length" class="incident-list">
-    <article class="incident-card" *ngFor="let incident of incidents; trackBy: trackByIncidentId">
+  <div *ngIf="!loading && !errorMessage && incidents.length && !filteredIncidents.length" class="state-card empty">
+    <h3>No incidents match this filter</h3>
+    <p>Try switching to another quick filter to continue triage.</p>
+  </div>
+
+  <div *ngIf="!loading && !errorMessage && filteredIncidents.length" class="incident-list">
+    <article class="incident-card" *ngFor="let incident of filteredIncidents; trackBy: trackByIncidentId">
       <header class="incident-header">
         <div>
           <h3>

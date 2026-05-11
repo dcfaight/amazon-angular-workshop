@@ -7,6 +7,8 @@ import { IncidentItem } from '../models/incident';
 import { IncidentService } from '../services/incident.service';
 import { ToastService } from '../services/toast.service';
 
+type IncidentQueueFilter = 'all' | 'open' | 'critical' | 'customer-impact';
+
 @Component({
   selector: 'app-admin-incidents',
   standalone: true,
@@ -21,6 +23,7 @@ export class AdminIncidentsComponent implements OnInit, OnDestroy {
   loading = true;
   errorMessage: string | null = null;
   lastRefreshedAt: Date | null = null;
+  activeFilter: IncidentQueueFilter = 'all';
 
   constructor(
     private incidentService: IncidentService,
@@ -77,6 +80,33 @@ export class AdminIncidentsComponent implements OnInit, OnDestroy {
 
   get resolvedIncidents(): number {
     return this.incidents.filter((incident) => incident.status === 'resolved').length;
+  }
+
+  get filteredIncidents(): IncidentItem[] {
+    switch (this.activeFilter) {
+      case 'open':
+        return this.incidents.filter((incident) => incident.status !== 'resolved');
+      case 'critical':
+        return this.incidents.filter(
+          (incident) =>
+            (incident.severity === 'sev1' || incident.severity === 'sev2') &&
+            incident.status !== 'resolved'
+        );
+      case 'customer-impact':
+        return this.incidents.filter(
+          (incident) => incident.hasCustomerImpact && incident.status !== 'resolved'
+        );
+      default:
+        return this.incidents;
+    }
+  }
+
+  setFilter(filter: IncidentQueueFilter): void {
+    this.activeFilter = filter;
+  }
+
+  isFilterActive(filter: IncidentQueueFilter): boolean {
+    return this.activeFilter === filter;
   }
 
   getStatusClass(incident: IncidentItem): string {
