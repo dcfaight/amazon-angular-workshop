@@ -1,8 +1,10 @@
 import { TestBed } from '@angular/core/testing';
+import { HttpErrorResponse } from '@angular/common/http';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { CheckoutService } from './checkout.service';
 import { AppStateService } from './app-state.service';
 import { CheckoutError, CheckoutRequest } from '../models/checkout';
+import { of, throwError } from 'rxjs';
 
 describe('CheckoutService', () => {
   let service: CheckoutService;
@@ -158,5 +160,89 @@ describe('CheckoutService', () => {
         }),
       }) as unknown as CheckoutError
     );
+  });
+
+  it('should map undefined product responses to product-not-found checkout errors', async () => {
+    spyOn((service as any).http, 'get').and.returnValue(of(null));
+
+    await expectAsync((service as any).getProductById(1, 'Ghost Product', 1)).toBeRejectedWith(
+      jasmine.objectContaining({
+        failure: jasmine.objectContaining({
+          reason: 'PRODUCT_NOT_FOUND',
+          productId: 1,
+        }),
+      }) as unknown as CheckoutError
+    );
+  });
+
+  it('should map non-404 lookup errors to checkout-unavailable errors', async () => {
+    spyOn((service as any).http, 'get').and.returnValue(
+      throwError(() => new HttpErrorResponse({ status: 500, statusText: 'Server Error' }))
+    );
+
+    await expectAsync((service as any).getProductById(1, 'Test Product', 1)).toBeRejectedWith(
+      jasmine.objectContaining({
+        failure: jasmine.objectContaining({
+          reason: 'CHECKOUT_UNAVAILABLE',
+          message: 'Unable to validate stock right now. Please try again.',
+        }),
+      }) as unknown as CheckoutError
+    );
+  });
+
+  it('should map stock update failures to checkout-unavailable errors', async () => {
+    spyOn((service as any).http, 'put').and.returnValue(
+      throwError(() => new Error('put failed'))
+    );
+
+    await expectAsync(
+      (service as any).updateProductStock(
+        {
+          id: 1,
+          title: 'Test Product',
+          description: 'Test',
+          price: 29.99,
+          imageUrl: 'http://image.test',
+          inStock: true,
+          stockCount: 2,
+        },
+        'Test Product'
+      )
+    ).toBeRejectedWith(
+      jasmine.objectContaining({
+        failure: jasmine.objectContaining({
+          reason: 'CHECKOUT_UNAVAILABLE',
+          productId: 1,
+        }),
+      }) as unknown as CheckoutError
+    );
+  });
+
+  it('should return zero available stock when a product is out of stock', () => {
+    const available = (service as any).getAvailableStock({ inStock: false, stockCount: 7 });
+
+    expect(available).toBe(0);
+  });
+
+  it('should use default available stock when stockCount is missing', () => {
+    const available = (service as any).getAvailableStock({ inStock: true });
+
+    expect(available).toBe(5);
+  });
+
+  it('should execute simulated network latency helper', async () => {
+    const latencySpy = (service as any).simulateNetworkLatency as jasmine.Spy;
+    latencySpy.and.callThrough();
+    jasmine.clock().install();
+
+    try {
+      const pending = (service as any).simulateNetworkLatency();
+      jasmine.clock().tick(250);
+      await pending;
+    } finally {
+      jasmine.clock().uninstall();
+    }
+
+    expect(latencySpy).toHaveBeenCalled();
   });
 });

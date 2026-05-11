@@ -16,6 +16,7 @@ describe('AuthService', () => {
   let amplifyAuth: jasmine.SpyObj<AmplifyAuthAdapter>;
   let httpMock: HttpTestingController;
   let originalUseAmplifyAuth: boolean;
+  let originalWarn: typeof console.warn;
 
   const mockAmplifyUser: AmplifyCurrentUser = {
     userId: 'amplify-user-id',
@@ -73,6 +74,18 @@ describe('AuthService', () => {
   beforeEach(() => {
     localStorage.clear();
     originalUseAmplifyAuth = environment.features.useAmplifyAuth;
+    originalWarn = console.warn;
+    spyOn(console, 'warn').and.callFake((...args: unknown[]) => {
+      const message = String(args[0] ?? '');
+      if (
+        message.includes('Amplify has not been configured') ||
+        message.includes('NG02801')
+      ) {
+        return;
+      }
+
+      originalWarn(...(args as Parameters<typeof console.warn>));
+    });
 
     amplifyAuth = jasmine.createSpyObj<AmplifyAuthAdapter>(
       'AmplifyAuthAdapter',

@@ -5,7 +5,6 @@ import { Router, RouterLink } from '@angular/router';
 import { firstValueFrom, Subject, takeUntil } from 'rxjs';
 import {
   CheckoutConfirmation,
-  CheckoutError,
   CheckoutRequest,
   isCheckoutError,
   PaymentDetails,
@@ -245,10 +244,6 @@ export class CheckoutComponent implements OnDestroy {
 
   private resolveCheckoutErrorMessage(error: unknown): string {
     if (isCheckoutError(error)) {
-      return error.failure.message;
-    }
-
-    if (error instanceof CheckoutError) {
       return error.failure.message;
     }
 

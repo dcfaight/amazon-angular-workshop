@@ -143,9 +143,35 @@ GitHub Actions workflow is at:
 It runs:
 
 1. `npm ci`
-2. Playwright browser install
-3. `npm run build`
-4. `npm run e2e`
+2. `npm run test -- --watch=false --browsers=ChromeHeadless --code-coverage`
+3. coverage threshold enforcement
+4. `npm run build -- --configuration=development`
+5. coverage artifact upload
+
+Additional coverage workflow:
+
+- `.github/workflows/coverage.yml` (manual trigger + nightly schedule)
+
+## Always Run Latest Main Checklist
+
+Use this quick checklist when rerunning Actions or agents:
+
+1. Confirm local branch is up to date:
+
+```bash
+git checkout main
+git pull
+```
+
+2. Confirm the latest commit hash:
+
+```bash
+git log --oneline -n 1
+```
+
+3. In GitHub Actions, verify the workflow run SHA matches the latest `main` SHA.
+4. If a run is tied to an older SHA, start a fresh run from the latest commit instead of rerunning the old one.
+5. For coverage-specific checks, run the `Coverage` workflow manually.
 
 ## Build
 

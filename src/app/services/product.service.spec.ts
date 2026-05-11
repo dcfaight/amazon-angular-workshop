@@ -177,8 +177,10 @@ describe('ProductService', () => {
           expect(error.message).toContain('Failed to fetch products');
           done();
         },
-        next: () => {
-          // Should error, but if it gets here with in-memory fallback that's okay
+        next: (products) => {
+          // The service intentionally falls back to in-memory products.
+          expect(Array.isArray(products)).toBeTrue();
+          expect(products.length).toBeGreaterThan(0);
           done();
         }
       });

@@ -3,8 +3,19 @@ import { AmplifyAuthAdapter } from './amplify-auth.adapter';
 
 describe('AmplifyAuthAdapter', () => {
   let adapter: AmplifyAuthAdapter;
+  let originalWarn: typeof console.warn;
 
   beforeEach(() => {
+    originalWarn = console.warn;
+    spyOn(console, 'warn').and.callFake((...args: unknown[]) => {
+      const message = String(args[0] ?? '');
+      if (message.includes('Amplify has not been configured')) {
+        return;
+      }
+
+      originalWarn(...(args as Parameters<typeof console.warn>));
+    });
+
     TestBed.configureTestingModule({
       providers: [AmplifyAuthAdapter],
     });
