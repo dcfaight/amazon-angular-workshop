@@ -80,6 +80,37 @@
     </button>
   </div>
 
+  <section *ngIf="!loading && !errorMessage && incidents.length" class="notification-panel">
+    <header>
+      <div>
+        <h3>Notification Simulator</h3>
+        <p>Dispatch mock Slack and Teams updates to demonstrate incident communications.</p>
+      </div>
+      <button
+        type="button"
+        class="workflow-button"
+        (click)="clearNotificationHistory()"
+        [disabled]="!notificationHistory.length"
+      >
+        Clear History
+      </button>
+    </header>
+
+    <ul *ngIf="notificationHistory.length; else noNotifications" class="notification-list">
+      <li *ngFor="let notification of notificationHistory">
+        <span class="notification-channel" [class.slack]="notification.channel === 'slack'" [class.teams]="notification.channel === 'teams'">
+          {{ notification.channel }}
+        </span>
+        <strong>#{{ notification.incidentNumber }}</strong>
+        <span class="notification-copy">{{ notification.message }}</span>
+        <small>{{ notification.sentAt | date: 'short' }}</small>
+      </li>
+    </ul>
+    <ng-template #noNotifications>
+      <p class="muted">No notifications sent yet.</p>
+    </ng-template>
+  </section>
+
   <p *ngIf="loading" class="state-message">Loading incidents from GitHub...</p>
 
   <div *ngIf="errorMessage && !loading" class="state-card error" role="alert">
@@ -177,6 +208,17 @@
             <a [href]="getPostmortemIssueUrl(incident)" target="_blank" rel="noopener noreferrer">
               Open Template
             </a>
+          </div>
+        </div>
+        <div>
+          <span class="meta-label">Notify</span>
+          <div class="postmortem-actions">
+            <button type="button" class="workflow-button" (click)="sendIncidentNotification(incident, 'slack')">
+              Send Slack
+            </button>
+            <button type="button" class="workflow-button" (click)="sendIncidentNotification(incident, 'teams')">
+              Send Teams
+            </button>
           </div>
         </div>
       </div>

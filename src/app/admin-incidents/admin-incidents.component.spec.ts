@@ -192,4 +192,31 @@ describe('AdminIncidentsComponent', () => {
 
     expect(anotherComponent.getPostmortemState(mockIncidents[0])).toBe('in-progress');
   });
+
+  it('should send and persist a notification entry', async () => {
+    component.sendIncidentNotification(mockIncidents[0], 'slack');
+
+    expect(component.notificationHistory.length).toBe(1);
+    expect(component.notificationHistory[0].channel).toBe('slack');
+    expect(component.notificationHistory[0].incidentNumber).toBe(101);
+    expect(toastService.show).toHaveBeenCalledWith('SLACK notification queued for #101.');
+
+    const anotherFixture = TestBed.createComponent(AdminIncidentsComponent);
+    const anotherComponent = anotherFixture.componentInstance;
+    anotherFixture.detectChanges();
+    await anotherFixture.whenStable();
+
+    expect(anotherComponent.notificationHistory.length).toBe(1);
+    expect(anotherComponent.notificationHistory[0].channel).toBe('slack');
+  });
+
+  it('should clear notification history', () => {
+    component.sendIncidentNotification(mockIncidents[0], 'teams');
+    expect(component.notificationHistory.length).toBe(1);
+
+    component.clearNotificationHistory();
+
+    expect(component.notificationHistory.length).toBe(0);
+    expect(toastService.show).toHaveBeenCalledWith('Notification history cleared.');
+  });
 });

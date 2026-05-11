@@ -10,6 +10,15 @@ import { IncidentTimelineComponent } from './incident-timeline.component';
 
 type IncidentQueueFilter = 'all' | 'open' | 'critical' | 'customer-impact';
 type PostmortemWorkflowState = 'not-started' | 'in-progress' | 'completed';
+type NotificationChannel = 'slack' | 'teams';
+
+interface IncidentNotificationEntry {
+  id: number;
+  incidentNumber: number;
+  channel: NotificationChannel;
+  message: string;
+  sentAt: string;
+}
 
 @Component({
   selector: 'app-admin-incidents',
@@ -22,6 +31,7 @@ export class AdminIncidentsComponent implements OnInit, OnDestroy {
   private readonly destroy$ = new Subject<void>();
   private readonly ownerStorageKey = 'incident-owner-overrides';
   private readonly postmortemStorageKey = 'incident-postmortem-states';
+  private readonly notificationStorageKey = 'incident-notification-history';
 
   incidents: IncidentItem[] = [];
   loading = true;
@@ -29,6 +39,7 @@ export class AdminIncidentsComponent implements OnInit, OnDestroy {
   lastRefreshedAt: Date | null = null;
   activeFilter: IncidentQueueFilter = 'all';
   expandedIncident: number | null = null;
+  notificationHistory: IncidentNotificationEntry[] = [];
   readonly availableOwners = ['oncall-app', 'platform-lead', 'payments-sme', 'checkout-owner'];
   private readonly localOwners = new Map<number, string>();
   private readonly localPostmortemStates = new Map<number, PostmortemWorkflowState>();
@@ -94,8 +105,34 @@ export class AdminIncidentsComponent implements OnInit, OnDestroy {
     return `postmortem-pill ${this.getPostmortemState(incident)}`;
   }
 
+  sendIncidentNotification(incident: IncidentItem, channel: NotificationChannel): void {
+    const owner = this.getOwner(incident);
+    const message =
+      `[${incident.severity.toUpperCase()}] #${incident.number} ${incident.title} | ` +
+      `status: ${incident.status} | owner: ${owner}`;
+
+    const entry: IncidentNotificationEntry = {
+      id: Date.now() + Math.floor(Math.random() * 1000),
+      incidentNumber: incident.number,
+      channel,
+      message,
+      sentAt: new Date().toISOString(),
+    };
+
+    this.notificationHistory = [entry, ...this.notificationHistory].slice(0, 20);
+    this.persistNotificationHistory();
+    this.toastService.show(`${channel.toUpperCase()} notification queued for #${incident.number}.`);
+  }
+
+  clearNotificationHistory(): void {
+    this.notificationHistory = [];
+    this.persistNotificationHistory();
+    this.toastService.show('Notification history cleared.');
+  }
+
   ngOnInit(): void {
     this.loadPersistedWorkflowState();
+    this.loadPersistedNotifications();
     this.loadIncidents();
   }
 
@@ -244,5 +281,24 @@ export class AdminIncidentsComponent implements OnInit, OnDestroy {
   private persistPostmortemState(): void {
     const entries = Object.fromEntries(this.localPostmortemStates.entries());
     localStorage.setItem(this.postmortemStorageKey, JSON.stringify(entries));
+  }
+
+  private loadPersistedNotifications(): void {
+    try {
+      const raw = localStorage.getItem(this.notificationStorageKey);
+      if (!raw) {
+        this.notificationHistory = [];
+        return;
+      }
+
+      const parsed = JSON.parse(raw) as IncidentNotificationEntry[];
+      this.notificationHistory = Array.isArray(parsed) ? parsed.slice(0, 20) : [];
+    } catch {
+      this.notificationHistory = [];
+    }
+  }
+
+  private persistNotificationHistory(): void {
+    localStorage.setItem(this.notificationStorageKey, JSON.stringify(this.notificationHistory));
   }
 }
