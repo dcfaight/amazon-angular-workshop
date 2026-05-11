@@ -13,20 +13,18 @@ describe('ToastService', () => {
     expect(service).toBeTruthy();
   });
 
-  it('should have a message$ observable initialized to null', (done) => {
-    service.message$.subscribe((message) => {
-      expect(message).toBeNull();
-      done();
-    });
+  it('should have a message$ observable initialized to null', () => {
+    expect(service.message$.getValue()).toBeNull();
   });
 
-  it('should show a message', (done) => {
+  it('should show a message', fakeAsync(() => {
     service.show('Test message');
-    service.message$.subscribe((message) => {
-      expect(message).toBe('Test message');
-      done();
-    });
-  });
+
+    expect(service.message$.getValue()).toBe('Test message');
+
+    tick(2200);
+    flush();
+  }));
 
   it('should clear message after default duration (2200ms)', fakeAsync(() => {
     let emittedMessages: (string | null)[] = [];
