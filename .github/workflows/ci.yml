@@ -29,5 +29,5 @@ jobs:
       - name: Build app
         run: npm run build
 
-      - name: Run E2E tests
-        run: npm run e2e
+      - name: Run unit tests
+        run: npm run test -- --watch=false --browsers=ChromeHeadless
