@@ -20,6 +20,8 @@ type PostmortemWorkflowState = 'not-started' | 'in-progress' | 'completed';
 })
 export class AdminIncidentsComponent implements OnInit, OnDestroy {
   private readonly destroy$ = new Subject<void>();
+  private readonly ownerStorageKey = 'incident-owner-overrides';
+  private readonly postmortemStorageKey = 'incident-postmortem-states';
 
   incidents: IncidentItem[] = [];
   loading = true;
@@ -41,7 +43,13 @@ export class AdminIncidentsComponent implements OnInit, OnDestroy {
   }
 
   assignOwner(incidentId: number, owner: string): void {
-    this.localOwners.set(incidentId, owner);
+    if (owner === 'unassigned') {
+      this.localOwners.delete(incidentId);
+    } else {
+      this.localOwners.set(incidentId, owner);
+    }
+
+    this.persistOwnerState();
     this.toastService.show(`Owner assigned: ${owner}`);
   }
 
@@ -59,11 +67,13 @@ export class AdminIncidentsComponent implements OnInit, OnDestroy {
 
   startPostmortem(incident: IncidentItem): void {
     this.localPostmortemStates.set(incident.id, 'in-progress');
+    this.persistPostmortemState();
     this.toastService.show(`Postmortem started for #${incident.number}.`);
   }
 
   completePostmortem(incident: IncidentItem): void {
     this.localPostmortemStates.set(incident.id, 'completed');
+    this.persistPostmortemState();
     this.toastService.show(`Postmortem completed for #${incident.number}.`);
   }
 
@@ -85,6 +95,7 @@ export class AdminIncidentsComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    this.loadPersistedWorkflowState();
     this.loadIncidents();
   }
 
@@ -177,5 +188,61 @@ export class AdminIncidentsComponent implements OnInit, OnDestroy {
 
   trackByIncidentId(_index: number, incident: IncidentItem): number {
     return incident.id;
+  }
+
+  private loadPersistedWorkflowState(): void {
+    this.localOwners.clear();
+    this.localPostmortemStates.clear();
+
+    this.loadPersistedOwners();
+    this.loadPersistedPostmortemStates();
+  }
+
+  private loadPersistedOwners(): void {
+    try {
+      const raw = localStorage.getItem(this.ownerStorageKey);
+      if (!raw) {
+        return;
+      }
+
+      const parsed = JSON.parse(raw) as Record<string, string>;
+      Object.entries(parsed).forEach(([incidentId, owner]) => {
+        const numericId = Number(incidentId);
+        if (!Number.isNaN(numericId) && owner) {
+          this.localOwners.set(numericId, owner);
+        }
+      });
+    } catch {
+      this.localOwners.clear();
+    }
+  }
+
+  private loadPersistedPostmortemStates(): void {
+    try {
+      const raw = localStorage.getItem(this.postmortemStorageKey);
+      if (!raw) {
+        return;
+      }
+
+      const parsed = JSON.parse(raw) as Record<string, PostmortemWorkflowState>;
+      Object.entries(parsed).forEach(([incidentId, state]) => {
+        const numericId = Number(incidentId);
+        if (!Number.isNaN(numericId) && state) {
+          this.localPostmortemStates.set(numericId, state);
+        }
+      });
+    } catch {
+      this.localPostmortemStates.clear();
+    }
+  }
+
+  private persistOwnerState(): void {
+    const entries = Object.fromEntries(this.localOwners.entries());
+    localStorage.setItem(this.ownerStorageKey, JSON.stringify(entries));
+  }
+
+  private persistPostmortemState(): void {
+    const entries = Object.fromEntries(this.localPostmortemStates.entries());
+    localStorage.setItem(this.postmortemStorageKey, JSON.stringify(entries));
   }
 }

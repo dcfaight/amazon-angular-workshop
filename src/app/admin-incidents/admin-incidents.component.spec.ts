@@ -64,6 +64,8 @@ describe('AdminIncidentsComponent', () => {
   ];
 
   beforeEach(async () => {
+    localStorage.clear();
+
     incidentService = jasmine.createSpyObj<IncidentService>('IncidentService', ['getIncidents']);
     toastService = jasmine.createSpyObj<ToastService>('ToastService', ['show']);
 
@@ -81,6 +83,10 @@ describe('AdminIncidentsComponent', () => {
     fixture = TestBed.createComponent(AdminIncidentsComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
+  });
+
+  afterEach(() => {
+    localStorage.clear();
   });
 
   it('should create', () => {
@@ -161,5 +167,29 @@ describe('AdminIncidentsComponent', () => {
 
     component.toggleTimeline(1);
     expect(component.expandedIncident).toBeNull();
+  });
+
+  it('should persist and restore owner assignments', async () => {
+    component.assignOwner(1, 'platform-lead');
+    expect(component.getOwner(mockIncidents[0])).toBe('platform-lead');
+
+    const anotherFixture = TestBed.createComponent(AdminIncidentsComponent);
+    const anotherComponent = anotherFixture.componentInstance;
+    anotherFixture.detectChanges();
+    await anotherFixture.whenStable();
+
+    expect(anotherComponent.getOwner(mockIncidents[0])).toBe('platform-lead');
+  });
+
+  it('should persist and restore postmortem workflow state', async () => {
+    component.startPostmortem(mockIncidents[0]);
+    expect(component.getPostmortemState(mockIncidents[0])).toBe('in-progress');
+
+    const anotherFixture = TestBed.createComponent(AdminIncidentsComponent);
+    const anotherComponent = anotherFixture.componentInstance;
+    anotherFixture.detectChanges();
+    await anotherFixture.whenStable();
+
+    expect(anotherComponent.getPostmortemState(mockIncidents[0])).toBe('in-progress');
   });
 });
