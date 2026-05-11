@@ -94,6 +94,32 @@ export class IncidentService {
       );
   }
 
+  updateIncidentAssignees(
+    issueNumber: number,
+    assignees: string[],
+    githubToken: string
+  ): Observable<void> {
+    const url = `${this.issuesUrl}/${issueNumber}`;
+    return this.http
+      .patch(url, { assignees }, { headers: this.getWriteHeaders(githubToken) })
+      .pipe(map(() => undefined));
+  }
+
+  addIncidentLabel(issueNumber: number, label: string, githubToken: string): Observable<void> {
+    const url = `${this.issuesUrl}/${issueNumber}/labels`;
+    return this.http
+      .post(url, { labels: [label] }, { headers: this.getWriteHeaders(githubToken) })
+      .pipe(map(() => undefined));
+  }
+
+  removeIncidentLabel(issueNumber: number, label: string, githubToken: string): Observable<void> {
+    const encodedLabel = encodeURIComponent(label);
+    const url = `${this.issuesUrl}/${issueNumber}/labels/${encodedLabel}`;
+    return this.http
+      .delete(url, { headers: this.getWriteHeaders(githubToken) })
+      .pipe(map(() => undefined));
+  }
+
   private mapIncident(record: GithubIssueRecord): IncidentItem {
     const labels = this.extractLabels(record.labels);
     const body = record.body ?? '';
@@ -199,5 +225,13 @@ export class IncidentService {
     }
 
     return 'other';
+  }
+
+  private getWriteHeaders(token: string): Record<string, string> {
+    return {
+      Authorization: `Bearer ${token}`,
+      Accept: 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28',
+    };
   }
 }

@@ -1,5 +1,6 @@
 import { CommonModule, DatePipe } from '@angular/common';
 import { Component, OnDestroy, OnInit } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
@@ -23,7 +24,7 @@ interface IncidentNotificationEntry {
 @Component({
   selector: 'app-admin-incidents',
   standalone: true,
-  imports: [CommonModule, RouterLink, DatePipe, IncidentTimelineComponent],
+  imports: [CommonModule, FormsModule, RouterLink, DatePipe, IncidentTimelineComponent],
   templateUrl: './admin-incidents.component.html',
   styleUrl: './admin-incidents.component.scss',
 })
@@ -32,6 +33,7 @@ export class AdminIncidentsComponent implements OnInit, OnDestroy {
   private readonly ownerStorageKey = 'incident-owner-overrides';
   private readonly postmortemStorageKey = 'incident-postmortem-states';
   private readonly notificationStorageKey = 'incident-notification-history';
+  private readonly githubTokenStorageKey = 'incident-github-write-token';
 
   incidents: IncidentItem[] = [];
   loading = true;
@@ -40,6 +42,7 @@ export class AdminIncidentsComponent implements OnInit, OnDestroy {
   activeFilter: IncidentQueueFilter = 'all';
   expandedIncident: number | null = null;
   notificationHistory: IncidentNotificationEntry[] = [];
+  githubWriteToken = '';
   readonly availableOwners = ['oncall-app', 'platform-lead', 'payments-sme', 'checkout-owner'];
   private readonly localOwners = new Map<number, string>();
   private readonly localPostmortemStates = new Map<number, PostmortemWorkflowState>();
@@ -62,6 +65,28 @@ export class AdminIncidentsComponent implements OnInit, OnDestroy {
 
     this.persistOwnerState();
     this.toastService.show(`Owner assigned: ${owner}`);
+
+    if (!this.hasGitHubWriteToken) {
+      return;
+    }
+
+    const incident = this.incidents.find((candidate) => candidate.id === incidentId);
+    if (!incident) {
+      return;
+    }
+
+    const assignees = owner === 'unassigned' ? [] : [owner];
+    this.incidentService
+      .updateIncidentAssignees(incident.number, assignees, this.githubWriteToken)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.toastService.show(`Owner synced to GitHub for #${incident.number}.`);
+        },
+        error: () => {
+          this.toastService.show('Failed to sync owner to GitHub. Local value retained.');
+        },
+      });
   }
 
   getOwner(incident: IncidentItem): string {
@@ -80,12 +105,66 @@ export class AdminIncidentsComponent implements OnInit, OnDestroy {
     this.localPostmortemStates.set(incident.id, 'in-progress');
     this.persistPostmortemState();
     this.toastService.show(`Postmortem started for #${incident.number}.`);
+
+    if (!this.hasGitHubWriteToken) {
+      return;
+    }
+
+    this.incidentService
+      .addIncidentLabel(incident.number, 'needs-postmortem', this.githubWriteToken)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.toastService.show(`Postmortem label synced for #${incident.number}.`);
+        },
+        error: () => {
+          this.toastService.show('Failed to sync postmortem start to GitHub. Local value retained.');
+        },
+      });
   }
 
   completePostmortem(incident: IncidentItem): void {
     this.localPostmortemStates.set(incident.id, 'completed');
     this.persistPostmortemState();
     this.toastService.show(`Postmortem completed for #${incident.number}.`);
+
+    if (!this.hasGitHubWriteToken) {
+      return;
+    }
+
+    this.incidentService
+      .removeIncidentLabel(incident.number, 'needs-postmortem', this.githubWriteToken)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.toastService.show(`Postmortem completion synced for #${incident.number}.`);
+        },
+        error: () => {
+          this.toastService.show('Failed to sync postmortem completion to GitHub. Local value retained.');
+        },
+      });
+  }
+
+  get hasGitHubWriteToken(): boolean {
+    return !!this.githubWriteToken.trim();
+  }
+
+  saveGitHubWriteToken(): void {
+    this.githubWriteToken = this.githubWriteToken.trim();
+    if (!this.githubWriteToken) {
+      localStorage.removeItem(this.githubTokenStorageKey);
+      this.toastService.show('GitHub write token cleared.');
+      return;
+    }
+
+    localStorage.setItem(this.githubTokenStorageKey, this.githubWriteToken);
+    this.toastService.show('GitHub write token saved for this browser session.');
+  }
+
+  clearGitHubWriteToken(): void {
+    this.githubWriteToken = '';
+    localStorage.removeItem(this.githubTokenStorageKey);
+    this.toastService.show('GitHub write token removed.');
   }
 
   getPostmortemIssueUrl(incident: IncidentItem): string {
@@ -133,6 +212,7 @@ export class AdminIncidentsComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.loadPersistedWorkflowState();
     this.loadPersistedNotifications();
+    this.loadGitHubWriteToken();
     this.loadIncidents();
   }
 
@@ -300,5 +380,9 @@ export class AdminIncidentsComponent implements OnInit, OnDestroy {
 
   private persistNotificationHistory(): void {
     localStorage.setItem(this.notificationStorageKey, JSON.stringify(this.notificationHistory));
+  }
+
+  private loadGitHubWriteToken(): void {
+    this.githubWriteToken = localStorage.getItem(this.githubTokenStorageKey) ?? '';
   }
 }

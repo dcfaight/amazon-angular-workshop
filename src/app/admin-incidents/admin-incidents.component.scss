@@ -113,6 +113,61 @@
   margin: 0 0 1rem;
 }
 
+.github-sync-panel {
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 12px;
+  background: #fffbeb;
+  padding: 0.85rem;
+  margin: 0 0 1rem;
+  display: grid;
+  gap: 0.55rem;
+
+  h3 {
+    margin: 0;
+    font-size: 0.96rem;
+    color: #92400e;
+  }
+
+  p {
+    margin: 0.2rem 0 0;
+    color: #78350f;
+    font-size: 0.82rem;
+  }
+}
+
+.github-sync-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  align-items: center;
+
+  input {
+    min-width: 220px;
+    border: 1px solid #d6d3d1;
+    border-radius: 6px;
+    padding: 0.32rem 0.5rem;
+    font-size: 0.82rem;
+    color: #1f2937;
+    background: #fff;
+  }
+}
+
+.sync-status {
+  border-radius: 999px;
+  padding: 0.18rem 0.55rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.64rem;
+  font-weight: 700;
+  background: #e2e8f0;
+  color: #334155;
+
+  &.connected {
+    background: #dcfce7;
+    color: #166534;
+  }
+}
+
 .filter-row {
   display: flex;
   flex-wrap: wrap;

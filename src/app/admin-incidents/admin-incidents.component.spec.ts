@@ -66,10 +66,18 @@ describe('AdminIncidentsComponent', () => {
   beforeEach(async () => {
     localStorage.clear();
 
-    incidentService = jasmine.createSpyObj<IncidentService>('IncidentService', ['getIncidents']);
+    incidentService = jasmine.createSpyObj<IncidentService>('IncidentService', [
+      'getIncidents',
+      'updateIncidentAssignees',
+      'addIncidentLabel',
+      'removeIncidentLabel',
+    ]);
     toastService = jasmine.createSpyObj<ToastService>('ToastService', ['show']);
 
     incidentService.getIncidents.and.returnValue(of(mockIncidents));
+    incidentService.updateIncidentAssignees.and.returnValue(of(undefined));
+    incidentService.addIncidentLabel.and.returnValue(of(undefined));
+    incidentService.removeIncidentLabel.and.returnValue(of(undefined));
 
     await TestBed.configureTestingModule({
       imports: [AdminIncidentsComponent],
@@ -188,6 +196,15 @@ describe('AdminIncidentsComponent', () => {
     expect(anotherComponent.getOwner(mockIncidents[0])).toBe('platform-lead');
   });
 
+  it('should sync owner assignment to GitHub when token is present', () => {
+    component.githubWriteToken = 'ghp_test';
+
+    component.assignOwner(1, 'payments-sme');
+
+    expect(incidentService.updateIncidentAssignees).toHaveBeenCalledWith(101, ['payments-sme'], 'ghp_test');
+    expect(toastService.show).toHaveBeenCalledWith('Owner synced to GitHub for #101.');
+  });
+
   it('should persist and restore postmortem workflow state', async () => {
     component.startPostmortem(mockIncidents[0]);
     expect(component.getPostmortemState(mockIncidents[0])).toBe('in-progress');
@@ -198,6 +215,15 @@ describe('AdminIncidentsComponent', () => {
     await anotherFixture.whenStable();
 
     expect(anotherComponent.getPostmortemState(mockIncidents[0])).toBe('in-progress');
+  });
+
+  it('should sync postmortem completion label removal when token is present', () => {
+    component.githubWriteToken = 'ghp_test';
+
+    component.completePostmortem(mockIncidents[0]);
+
+    expect(incidentService.removeIncidentLabel).toHaveBeenCalledWith(101, 'needs-postmortem', 'ghp_test');
+    expect(toastService.show).toHaveBeenCalledWith('Postmortem completion synced for #101.');
   });
 
   it('should send and persist a notification entry', async () => {
@@ -244,5 +270,18 @@ describe('AdminIncidentsComponent', () => {
     await anotherFixture.whenStable();
 
     expect(anotherComponent.notificationHistory).toEqual([]);
+  });
+
+  it('should persist and clear github write token', () => {
+    component.githubWriteToken = 'ghp_test';
+    component.saveGitHubWriteToken();
+
+    expect(localStorage.getItem('incident-github-write-token')).toBe('ghp_test');
+    expect(component.hasGitHubWriteToken).toBeTrue();
+
+    component.clearGitHubWriteToken();
+
+    expect(localStorage.getItem('incident-github-write-token')).toBeNull();
+    expect(component.hasGitHubWriteToken).toBeFalse();
   });
 });

@@ -233,4 +233,31 @@ describe('IncidentService', () => {
     expect(events.length).toBe(1);
     expect(comments.length).toBe(1);
   });
+
+  it('should patch assignees for an incident with auth headers', () => {
+    service.updateIncidentAssignees(42, ['oncall-app'], 'ghp_token').subscribe();
+
+    const req = http.expectOne('https://api.github.com/repos/dcfaight/amazon-angular-workshop/issues/42');
+    expect(req.request.method).toBe('PATCH');
+    expect(req.request.body).toEqual({ assignees: ['oncall-app'] });
+    expect(req.request.headers.get('Authorization')).toBe('Bearer ghp_token');
+
+    req.flush({});
+  });
+
+  it('should add and remove labels with auth headers', () => {
+    service.addIncidentLabel(42, 'needs-postmortem', 'ghp_token').subscribe();
+    service.removeIncidentLabel(42, 'needs-postmortem', 'ghp_token').subscribe();
+
+    const addReq = http.expectOne('https://api.github.com/repos/dcfaight/amazon-angular-workshop/issues/42/labels');
+    expect(addReq.request.method).toBe('POST');
+    expect(addReq.request.body).toEqual({ labels: ['needs-postmortem'] });
+    expect(addReq.request.headers.get('Authorization')).toBe('Bearer ghp_token');
+    addReq.flush({});
+
+    const removeReq = http.expectOne('https://api.github.com/repos/dcfaight/amazon-angular-workshop/issues/42/labels/needs-postmortem');
+    expect(removeReq.request.method).toBe('DELETE');
+    expect(removeReq.request.headers.get('Authorization')).toBe('Bearer ghp_token');
+    removeReq.flush({});
+  });
 });

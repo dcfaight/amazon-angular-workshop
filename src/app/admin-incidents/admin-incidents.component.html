@@ -18,6 +18,28 @@
     </button>
   </header>
 
+  <section class="github-sync-panel" *ngIf="!loading">
+    <div>
+      <h3>GitHub Write-Back</h3>
+      <p>
+        Provide a GitHub token with repo scope to sync assignment and postmortem label actions to GitHub.
+      </p>
+    </div>
+    <div class="github-sync-controls">
+      <input
+        type="password"
+        [(ngModel)]="githubWriteToken"
+        placeholder="ghp_..."
+        aria-label="GitHub token"
+      />
+      <button type="button" class="workflow-button" (click)="saveGitHubWriteToken()">Save Token</button>
+      <button type="button" class="workflow-button" (click)="clearGitHubWriteToken()">Clear</button>
+      <span class="sync-status" [class.connected]="hasGitHubWriteToken">
+        {{ hasGitHubWriteToken ? 'Connected' : 'Local-only mode' }}
+      </span>
+    </div>
+  </section>
+
   <div class="stats-grid" *ngIf="!loading && incidents.length">
     <article class="stat-card red">
       <span class="stat-label">Open Incidents</span>
