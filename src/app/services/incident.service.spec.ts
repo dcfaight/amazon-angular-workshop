@@ -147,4 +147,90 @@ describe('IncidentService', () => {
 
     expect(didError).toBeTrue();
   });
+
+  it('should map additional severity, status, and reference type branches', () => {
+    let result: any[] = [];
+
+    service.getIncidents().subscribe((incidents) => {
+      result = incidents;
+    });
+
+    const req = http.expectOne((request) => request.url.includes('/issues'));
+    req.flush([
+      {
+        id: 10,
+        number: 10,
+        title: 'Acknowledged incident',
+        body: 'Runbook: https://example.com/runbook/checkout',
+        state: 'open',
+        html_url: 'https://github.com/dcfaight/amazon-angular-workshop/issues/10',
+        created_at: '2026-05-11T10:00:00Z',
+        updated_at: '2026-05-11T10:05:00Z',
+        closed_at: null,
+        labels: [{ name: 'incident' }, { name: 'acknowledged' }, { name: 'sev2' }],
+      },
+      {
+        id: 11,
+        number: 11,
+        title: 'Open unknown severity',
+        body: 'Dashboard: https://grafana.example.com/incident/11',
+        state: 'open',
+        html_url: 'https://github.com/dcfaight/amazon-angular-workshop/issues/11',
+        created_at: '2026-05-11T10:00:00Z',
+        updated_at: '2026-05-11T10:05:00Z',
+        closed_at: null,
+        labels: [{ name: 'incident' }],
+        assignees: [{ login: 'platform-lead' }],
+      },
+      {
+        id: 12,
+        number: 12,
+        title: 'Resolved with sev4',
+        body: 'Commit: https://github.com/dcfaight/amazon-angular-workshop/commit/abcdef12 and link https://example.com/other',
+        state: 'closed',
+        html_url: 'https://github.com/dcfaight/amazon-angular-workshop/issues/12',
+        created_at: '2026-05-11T10:00:00Z',
+        updated_at: '2026-05-11T10:05:00Z',
+        closed_at: '2026-05-11T11:00:00Z',
+        labels: [{ name: 'incident' }, { name: 'sev4' }, { name: 'resolved' }],
+      },
+    ]);
+
+    expect(result.length).toBe(3);
+    expect(result[0].severity).toBe('sev2');
+    expect(result[0].status).toBe('acknowledged');
+    expect(result[0].references[0].type).toBe('runbook');
+
+    expect(result[1].severity).toBe('unknown');
+    expect(result[1].status).toBe('open');
+    expect(result[1].references[0].type).toBe('dashboard');
+    expect(result[1].owner).toBe('platform-lead');
+
+    expect(result[2].severity).toBe('sev4');
+    expect(result[2].status).toBe('resolved');
+    expect(result[2].references[0].type).toBe('commit');
+    expect(result[2].references[1].type).toBe('other');
+  });
+
+  it('should fetch incident events and comments for a specific issue', () => {
+    let events: any[] = [];
+    let comments: any[] = [];
+
+    service.getIncidentEvents(101).subscribe((value) => {
+      events = value;
+    });
+
+    service.getIncidentComments(101).subscribe((value) => {
+      comments = value;
+    });
+
+    const eventsReq = http.expectOne('https://api.github.com/repos/dcfaight/amazon-angular-workshop/issues/101/events');
+    const commentsReq = http.expectOne('https://api.github.com/repos/dcfaight/amazon-angular-workshop/issues/101/comments');
+
+    eventsReq.flush([{ id: 1, event: 'labeled', created_at: '2026-05-11T10:00:00Z' }]);
+    commentsReq.flush([{ id: 1, body: 'Working on it', created_at: '2026-05-11T10:01:00Z' }]);
+
+    expect(events.length).toBe(1);
+    expect(comments.length).toBe(1);
+  });
 });

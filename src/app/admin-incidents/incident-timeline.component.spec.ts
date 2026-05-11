@@ -95,4 +95,18 @@ describe('IncidentTimelineComponent', () => {
     const empty = fixture.debugElement.query(By.css('.timeline-empty'));
     expect(empty).toBeTruthy();
   });
+
+  it('should fallback to empty arrays when api payloads are undefined', async () => {
+    incidentService.getIncidentEvents.and.returnValue(of(undefined as any));
+    incidentService.getIncidentComments.and.returnValue(of(undefined as any));
+
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(component.events).toEqual([]);
+    expect(component.comments).toEqual([]);
+    const empty = fixture.debugElement.query(By.css('.timeline-empty'));
+    expect(empty).toBeTruthy();
+  });
 });

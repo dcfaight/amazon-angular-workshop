@@ -82,4 +82,45 @@ describe('AdminIncidentMetricsComponent', () => {
     expect(component.loading).toBeFalse();
     expect(component.errorMessage).toBe('Unable to load incident metrics right now.');
   });
+
+  it('should return zero metrics when no incidents exist', () => {
+    incidentService.getIncidents.and.returnValue(of([]));
+    component.loadMetrics();
+
+    expect(component.totalIncidents).toBe(0);
+    expect(component.ownerCoveragePercent).toBe(0);
+    expect(component.mttrHours).toBe(0);
+    expect(component.oldestOpenIncidents.length).toBe(0);
+  });
+
+  it('should return zero mttr when no incidents are resolved', () => {
+    incidentService.getIncidents.and.returnValue(
+      of([
+        {
+          id: 9,
+          number: 9,
+          title: 'Open sev2 incident',
+          body: '',
+          state: 'open',
+          status: 'open',
+          severity: 'sev2',
+          labels: ['incident', 'sev2'],
+          hasCustomerImpact: true,
+          createdAt: '2026-05-11T10:00:00Z',
+          updatedAt: '2026-05-11T10:05:00Z',
+          closedAt: null,
+          issueUrl: 'https://github.com/dcfaight/amazon-angular-workshop/issues/9',
+          references: [],
+          assignees: [],
+          owner: null,
+          needsPostmortem: true,
+        },
+      ])
+    );
+
+    component.loadMetrics();
+
+    expect(component.mttrHours).toBe(0);
+    expect(component.openIncidents).toBe(1);
+  });
 });

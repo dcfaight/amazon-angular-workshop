@@ -127,6 +127,13 @@ describe('AdminIncidentsComponent', () => {
     expect(component.filteredIncidents[0].hasCustomerImpact).toBeTrue();
   });
 
+  it('should filter to critical incidents only', () => {
+    component.setFilter('critical');
+
+    expect(component.filteredIncidents.length).toBe(1);
+    expect(component.filteredIncidents[0].severity).toBe('sev1');
+  });
+
   it('should return css classes for severity and status badges', () => {
     expect(component.getSeverityClass(mockIncidents[0])).toBe('severity-pill sev1');
     expect(component.getStatusClass(mockIncidents[0])).toBe('status-pill mitigating');
@@ -218,5 +225,24 @@ describe('AdminIncidentsComponent', () => {
 
     expect(component.notificationHistory.length).toBe(0);
     expect(toastService.show).toHaveBeenCalledWith('Notification history cleared.');
+  });
+
+  it('should allow owner to be reset to unassigned', () => {
+    component.assignOwner(1, 'platform-lead');
+    expect(component.getOwner(mockIncidents[0])).toBe('platform-lead');
+
+    component.assignOwner(1, 'unassigned');
+    expect(component.getOwner(mockIncidents[0])).toBe('oncall-app');
+  });
+
+  it('should fallback to empty notification history when persisted value is not an array', async () => {
+    localStorage.setItem('incident-notification-history', JSON.stringify({ foo: 'bar' }));
+
+    const anotherFixture = TestBed.createComponent(AdminIncidentsComponent);
+    const anotherComponent = anotherFixture.componentInstance;
+    anotherFixture.detectChanges();
+    await anotherFixture.whenStable();
+
+    expect(anotherComponent.notificationHistory).toEqual([]);
   });
 });
