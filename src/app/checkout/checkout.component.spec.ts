@@ -9,6 +9,7 @@ import { AppStateService } from '../services/app-state.service';
 import { AuthService } from '../services/auth.service';
 import { CheckoutService } from '../services/checkout.service';
 import { OrderService } from '../services/order.service';
+import { PromotionService } from '../services/promotion.service';
 import { ToastService } from '../services/toast.service';
 
 describe('CheckoutComponent', () => {
@@ -22,6 +23,7 @@ describe('CheckoutComponent', () => {
   });
   const checkoutService = jasmine.createSpyObj<CheckoutService>('CheckoutService', ['placeOrder']);
   const orderService = jasmine.createSpyObj<OrderService>('OrderService', ['createOrder']);
+  const promotionService = jasmine.createSpyObj<PromotionService>('PromotionService', ['evaluatePromotion']);
   const toastService = jasmine.createSpyObj<ToastService>('ToastService', ['show']);
   const authService = jasmine.createSpyObj<AuthService>('AuthService', [], {
     currentUserValue: {
@@ -42,6 +44,26 @@ describe('CheckoutComponent', () => {
   };
 
   beforeEach(async () => {
+    promotionService.evaluatePromotion.and.callFake((code: string, subtotal: number) => {
+      const normalizedCode = code.trim().toUpperCase();
+      if (normalizedCode === 'SAVE10') {
+        return {
+          valid: true,
+          message: 'SAVE10 applied successfully.',
+          promotion: {
+            code: 'SAVE10',
+            discountAmount: Number((subtotal * 0.1).toFixed(2)),
+            description: '10% off',
+          },
+        };
+      }
+
+      return {
+        valid: false,
+        message: 'Promo code is invalid.',
+      };
+    });
+
     checkoutService.placeOrder.and.resolveTo({
       orderId: 'ORD-123',
       placedAtIso: new Date().toISOString(),
@@ -79,6 +101,7 @@ describe('CheckoutComponent', () => {
         { provide: CheckoutService, useValue: checkoutService },
         { provide: OrderService, useValue: orderService },
         { provide: AuthService, useValue: authService },
+        { provide: PromotionService, useValue: promotionService },
         { provide: ToastService, useValue: toastService },
       ],
     }).compileComponents();
@@ -95,6 +118,7 @@ describe('CheckoutComponent', () => {
     appState.setCartOpen.calls.reset();
     checkoutService.placeOrder.calls.reset();
     orderService.createOrder.calls.reset();
+    promotionService.evaluatePromotion.calls.reset();
     toastService.show.calls.reset();
     component.errorMessage = null;
     component.step = 'shipping';
@@ -106,6 +130,9 @@ describe('CheckoutComponent', () => {
       zip: '',
     };
     component.payment = { method: 'card', cardLast4: '' };
+    component.appliedPromotion = null;
+    component.promotionCode = '';
+    component.promotionMessage = null;
   });
 
   it('should create', () => {
@@ -436,6 +463,68 @@ describe('CheckoutComponent', () => {
     ]);
 
     expect(component.subtotal).toBe(250);
+  });
+
+  it('should apply a valid promotion and update total', () => {
+    component.promotionCode = 'save10';
+
+    component.applyPromotion();
+
+    expect(component.appliedPromotion?.code).toBe('SAVE10');
+    expect(component.discountAmount).toBe(10);
+    expect(component.total).toBe(90);
+  });
+
+  it('should reject invalid promotion codes', () => {
+    component.promotionCode = 'bad-code';
+
+    component.applyPromotion();
+
+    expect(component.appliedPromotion).toBeNull();
+    expect(component.discountAmount).toBe(0);
+    expect(component.promotionMessage).toBe('Promo code is invalid.');
+  });
+
+  it('should send discounted total to checkout and order persistence', async () => {
+    checkoutService.placeOrder.and.callFake(async (request) => ({
+      orderId: 'ORD-123',
+      placedAtIso: new Date().toISOString(),
+      total: request.total,
+      itemCount: 1,
+      etaDays: 3,
+    }));
+
+    component.promotionCode = 'SAVE10';
+    component.applyPromotion();
+    component.shipping = {
+      fullName: 'Test User',
+      addressLine1: '123 Main St',
+      city: 'Seattle',
+      state: 'WA',
+      zip: '98101',
+    };
+    component.payment = { method: 'card', cardLast4: '4242' };
+    component.step = 'review';
+
+    await component.placeOrder();
+
+    expect(checkoutService.placeOrder).toHaveBeenCalledWith(
+      jasmine.objectContaining({ total: 90 })
+    );
+    expect(orderService.createOrder).toHaveBeenCalledWith(
+      jasmine.objectContaining({ subtotal: 100, total: 90 })
+    );
+  });
+
+  it('should remove an applied promotion', () => {
+    component.promotionCode = 'SAVE10';
+    component.applyPromotion();
+
+    component.removePromotion();
+
+    expect(component.appliedPromotion).toBeNull();
+    expect(component.promotionCode).toBe('');
+    expect(component.discountAmount).toBe(0);
   });
 
   it('should handle network errors gracefully', async () => {

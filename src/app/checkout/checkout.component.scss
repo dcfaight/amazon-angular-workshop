@@ -273,6 +273,52 @@ button[disabled] {
   margin: 0;
 }
 
+.promotion-box {
+  display: grid;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+
+  label {
+    font-weight: 600;
+    color: #232f3e;
+  }
+}
+
+.promotion-controls {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.5rem;
+
+  input {
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    padding: 0.5rem 0.6rem;
+    font-size: 0.95rem;
+  }
+}
+
+.promotion-message {
+  margin: 0;
+  color: #232f3e;
+  font-size: 0.85rem;
+}
+
+.link-like {
+  justify-self: start;
+  background: transparent;
+  color: #0f5aa3;
+  border: 0;
+  padding: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+
+  &:hover {
+    box-shadow: none;
+    transform: none;
+    text-decoration: underline;
+  }
+}
+
 // Review Page
 .review-items {
   border-bottom: 1px solid #e0e0e0;
@@ -343,6 +389,16 @@ button[disabled] {
   .subtotal {
     color: #232f3e;
     font-weight: 600;
+  }
+
+  .discount {
+    color: #0f7a3f;
+    font-weight: 600;
+  }
+
+  .total {
+    color: #232f3e;
+    font-weight: 700;
   }
 
   .estimated-delivery {
@@ -487,6 +543,10 @@ button[disabled] {
     border-top: 1px solid #e0e0e0;
     padding-top: 0.5rem;
   }
+}
+
+.summary-row.discount-row {
+  color: #0f7a3f;
 }
 
 .delivery-info {

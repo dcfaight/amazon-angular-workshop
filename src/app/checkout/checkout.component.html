@@ -181,6 +181,10 @@
 
           <div class="review-summary">
             <p class="subtotal">Subtotal: <strong>${{ subtotal.toFixed(2) }}</strong></p>
+            <p class="discount" *ngIf="discountAmount > 0">
+              Discount: <strong>-${{ discountAmount.toFixed(2) }}</strong>
+            </p>
+            <p class="total">Total: <strong>${{ total.toFixed(2) }}</strong></p>
             <p class="estimated-delivery">Estimated delivery: <strong>5-7 business days</strong></p>
           </div>
 
@@ -225,6 +229,24 @@
     <!-- Order Summary Sidebar -->
     <aside class="order-summary" *ngIf="step !== 'success'">
       <h3>Order Summary</h3>
+      <div class="promotion-box">
+        <label for="promotionCode">Promo code</label>
+        <div class="promotion-controls">
+          <input
+            id="promotionCode"
+            name="promotionCode"
+            type="text"
+            placeholder="SAVE10"
+            [(ngModel)]="promotionCode"
+          />
+          <button type="button" class="secondary" (click)="applyPromotion()">Apply</button>
+        </div>
+        <button *ngIf="appliedPromotion" type="button" class="link-like" (click)="removePromotion()">
+          Remove promotion
+        </button>
+        <p *ngIf="promotionMessage" class="promotion-message">{{ promotionMessage }}</p>
+      </div>
+
       <ul class="summary-items">
         <li *ngFor="let line of cartLineItems" class="summary-item">
           <span class="summary-title">{{ line.product.title }}</span>
@@ -242,9 +264,13 @@
           <span>Shipping</span>
           <strong>Free</strong>
         </div>
+        <div class="summary-row discount-row" *ngIf="discountAmount > 0">
+          <span>Discount</span>
+          <strong>-${{ discountAmount.toFixed(2) }}</strong>
+        </div>
         <div class="summary-row total">
           <span>Total</span>
-          <strong>${{ subtotal.toFixed(2) }}</strong>
+          <strong>${{ total.toFixed(2) }}</strong>
         </div>
       </div>
 

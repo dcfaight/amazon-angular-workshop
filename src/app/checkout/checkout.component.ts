@@ -16,6 +16,7 @@ import { AppStateService } from '../services/app-state.service';
 import { AuthService } from '../services/auth.service';
 import { CheckoutService } from '../services/checkout.service';
 import { OrderService } from '../services/order.service';
+import { AppliedPromotion, PromotionService } from '../services/promotion.service';
 import { ToastService } from '../services/toast.service';
 
 interface CheckoutLineItem {
@@ -41,6 +42,9 @@ export class CheckoutComponent implements OnDestroy {
   errorMessage: string | null = null;
   orderConfirmation: CheckoutConfirmation | null = null;
   formSubmitted = false;
+  promotionCode = '';
+  promotionMessage: string | null = null;
+  appliedPromotion: AppliedPromotion | null = null;
 
   cartItems: Product[] = [];
 
@@ -62,6 +66,7 @@ export class CheckoutComponent implements OnDestroy {
     private checkoutService: CheckoutService,
     private orderService: OrderService,
     private authService: AuthService,
+    private promotionService: PromotionService,
     private toastService: ToastService,
     private router: Router
   ) {
@@ -69,6 +74,7 @@ export class CheckoutComponent implements OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe((items) => {
         this.cartItems = items;
+        this.revalidatePromotion();
       });
   }
 
@@ -79,6 +85,14 @@ export class CheckoutComponent implements OnDestroy {
 
   get subtotal(): number {
     return this.cartItems.reduce((sum, item) => sum + item.price, 0);
+  }
+
+  get discountAmount(): number {
+    return this.appliedPromotion?.discountAmount ?? 0;
+  }
+
+  get total(): number {
+    return Number(Math.max(0, this.subtotal - this.discountAmount).toFixed(2));
   }
 
   get cartLineItems(): CheckoutLineItem[] {
@@ -168,7 +182,7 @@ export class CheckoutComponent implements OnDestroy {
 
     const request: CheckoutRequest = {
       items: this.cartItems,
-      total: this.subtotal,
+      total: this.total,
       shipping: this.shipping,
       payment: this.payment,
     };
@@ -196,6 +210,25 @@ export class CheckoutComponent implements OnDestroy {
     await this.router.navigate(['/']);
   }
 
+  applyPromotion(): void {
+    const evaluation = this.promotionService.evaluatePromotion(this.promotionCode, this.subtotal);
+    this.promotionMessage = evaluation.message;
+
+    if (!evaluation.valid || !evaluation.promotion) {
+      this.appliedPromotion = null;
+      return;
+    }
+
+    this.appliedPromotion = evaluation.promotion;
+    this.promotionCode = evaluation.promotion.code;
+  }
+
+  removePromotion(): void {
+    this.appliedPromotion = null;
+    this.promotionCode = '';
+    this.promotionMessage = 'Promotion removed.';
+  }
+
   private buildOrderRecord(confirmation: CheckoutConfirmation): NewOrder {
     const user = this.authService.currentUserValue;
     if (!user) {
@@ -210,7 +243,7 @@ export class CheckoutComponent implements OnDestroy {
       createdAt: confirmation.placedAtIso,
       status: 'pending',
       subtotal: this.subtotal,
-      total: this.subtotal,
+      total: this.total,
       totalItems: this.cartItems.length,
       shippingAddress: { ...this.shipping },
       paymentMethod: this.payment.method,
@@ -252,5 +285,20 @@ export class CheckoutComponent implements OnDestroy {
     }
 
     return 'Unable to place order right now.';
+  }
+
+  private revalidatePromotion(): void {
+    if (!this.appliedPromotion) {
+      return;
+    }
+
+    const evaluation = this.promotionService.evaluatePromotion(this.appliedPromotion.code, this.subtotal);
+    if (!evaluation.valid || !evaluation.promotion) {
+      this.appliedPromotion = null;
+      this.promotionMessage = 'Promotion removed because cart subtotal changed.';
+      return;
+    }
+
+    this.appliedPromotion = evaluation.promotion;
   }
 }
