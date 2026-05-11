@@ -1,0 +1,43 @@
+- name: incident
+  color: D93F0B
+  description: Production incident record
+
+- name: sev1
+  color: B60205
+  description: Critical impact, immediate response required
+
+- name: sev2
+  color: D93F0B
+  description: High impact, urgent response required
+
+- name: sev3
+  color: FBCA04
+  description: Moderate impact, response during business hours
+
+- name: sev4
+  color: 0E8A16
+  description: Low impact, monitor and schedule fix
+
+- name: customer-impact
+  color: 5319E7
+  description: Direct customer-facing degradation
+
+- name: acknowledged
+  color: 0052CC
+  description: Incident acknowledged and under triage
+
+- name: mitigating
+  color: 1D76DB
+  description: Mitigation is in progress
+
+- name: resolved
+  color: 0E8A16
+  description: Incident impact is resolved
+
+- name: needs-postmortem
+  color: F9D0C4
+  description: Postmortem is required before closure
+
+- name: follow-up
+  color: C2E0C6
+  description: Follow-up remediation or hardening work

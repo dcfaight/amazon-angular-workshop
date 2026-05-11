@@ -1,0 +1,96 @@
+name: Incident Report
+description: Use this form to report and track production incidents
+title: "[INCIDENT] "
+labels:
+  - incident
+body:
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      description: Select the highest observed severity.
+      options:
+        - sev1
+        - sev2
+        - sev3
+        - sev4
+    validations:
+      required: true
+
+  - type: input
+    id: component
+    attributes:
+      label: Service or Component
+      description: Which service, page, or integration is affected?
+      placeholder: checkout-api, order-history-ui, auth-service
+    validations:
+      required: true
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Incident Summary
+      description: One or two sentences describing the incident.
+      placeholder: Customers cannot place orders due to intermittent 500 responses.
+    validations:
+      required: true
+
+  - type: textarea
+    id: impact
+    attributes:
+      label: Customer Impact
+      description: What is the user impact and estimated scope?
+      placeholder: Checkout failures for approximately 35 percent of sessions in us-east-1.
+    validations:
+      required: true
+
+  - type: input
+    id: detected-time
+    attributes:
+      label: Detection Time (UTC)
+      description: ISO timestamp when incident was detected.
+      placeholder: 2026-05-11T16:05:00Z
+    validations:
+      required: true
+
+  - type: textarea
+    id: mitigation
+    attributes:
+      label: Mitigation Steps
+      description: What has been done to reduce impact?
+      placeholder: Rolled back deploy, increased retries, and restarted workers.
+    validations:
+      required: true
+
+  - type: textarea
+    id: root-cause
+    attributes:
+      label: Suspected Root Cause
+      description: What is likely causing the issue right now?
+      placeholder: Cache key mismatch causing invalid token lookups.
+    validations:
+      required: false
+
+  - type: textarea
+    id: links
+    attributes:
+      label: Related Links
+      description: Include PRs, commits, dashboards, logs, and runbooks.
+      placeholder: |
+        PR: https://github.com/OWNER/REPO/pull/123
+        Commit: https://github.com/OWNER/REPO/commit/abc123
+        Dashboard: https://...
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: comms
+    attributes:
+      label: Communication and Ownership
+      options:
+        - label: Incident owner assigned
+          required: true
+        - label: Stakeholders notified
+          required: true
+        - label: Postmortem required
+          required: false
