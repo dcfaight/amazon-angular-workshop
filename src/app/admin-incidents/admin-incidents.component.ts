@@ -9,6 +9,7 @@ import { ToastService } from '../services/toast.service';
 import { IncidentTimelineComponent } from './incident-timeline.component';
 
 type IncidentQueueFilter = 'all' | 'open' | 'critical' | 'customer-impact';
+type PostmortemWorkflowState = 'not-started' | 'in-progress' | 'completed';
 
 @Component({
   selector: 'app-admin-incidents',
@@ -26,6 +27,9 @@ export class AdminIncidentsComponent implements OnInit, OnDestroy {
   lastRefreshedAt: Date | null = null;
   activeFilter: IncidentQueueFilter = 'all';
   expandedIncident: number | null = null;
+  readonly availableOwners = ['oncall-app', 'platform-lead', 'payments-sme', 'checkout-owner'];
+  private readonly localOwners = new Map<number, string>();
+  private readonly localPostmortemStates = new Map<number, PostmortemWorkflowState>();
 
   constructor(
     private incidentService: IncidentService,
@@ -34,6 +38,50 @@ export class AdminIncidentsComponent implements OnInit, OnDestroy {
 
   toggleTimeline(incidentId: number): void {
     this.expandedIncident = this.expandedIncident === incidentId ? null : incidentId;
+  }
+
+  assignOwner(incidentId: number, owner: string): void {
+    this.localOwners.set(incidentId, owner);
+    this.toastService.show(`Owner assigned: ${owner}`);
+  }
+
+  getOwner(incident: IncidentItem): string {
+    return this.localOwners.get(incident.id) ?? incident.owner ?? 'unassigned';
+  }
+
+  getPostmortemState(incident: IncidentItem): PostmortemWorkflowState {
+    if (!incident.needsPostmortem) {
+      return 'completed';
+    }
+
+    return this.localPostmortemStates.get(incident.id) ?? 'not-started';
+  }
+
+  startPostmortem(incident: IncidentItem): void {
+    this.localPostmortemStates.set(incident.id, 'in-progress');
+    this.toastService.show(`Postmortem started for #${incident.number}.`);
+  }
+
+  completePostmortem(incident: IncidentItem): void {
+    this.localPostmortemStates.set(incident.id, 'completed');
+    this.toastService.show(`Postmortem completed for #${incident.number}.`);
+  }
+
+  getPostmortemIssueUrl(incident: IncidentItem): string {
+    const title = encodeURIComponent(`[Postmortem] Incident #${incident.number}: ${incident.title}`);
+    const body = encodeURIComponent(
+      `## Incident\n${incident.issueUrl}\n\n## Summary\n\n## Root Cause\n\n## Action Items\n- [ ]\n`
+    );
+
+    return `https://github.com/dcfaight/amazon-angular-workshop/issues/new?title=${title}&body=${body}`;
+  }
+
+  getOwnershipClass(incident: IncidentItem): string {
+    return this.getOwner(incident) === 'unassigned' ? 'owner-pill unassigned' : 'owner-pill assigned';
+  }
+
+  getPostmortemClass(incident: IncidentItem): string {
+    return `postmortem-pill ${this.getPostmortemState(incident)}`;
   }
 
   ngOnInit(): void {

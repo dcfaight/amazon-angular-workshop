@@ -21,4 +21,7 @@ export interface IncidentItem {
   closedAt: string | null;
   issueUrl: string;
   references: IncidentReference[];
+  assignees: string[];
+  owner: string | null;
+  needsPostmortem: boolean;
 }

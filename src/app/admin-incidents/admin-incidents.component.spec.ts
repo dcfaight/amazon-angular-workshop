@@ -33,6 +33,9 @@ describe('AdminIncidentsComponent', () => {
           url: 'https://github.com/dcfaight/amazon-angular-workshop/pull/201',
         },
       ],
+      assignees: ['oncall-app'],
+      owner: 'oncall-app',
+      needsPostmortem: true,
     },
     {
       id: 2,
@@ -54,6 +57,9 @@ describe('AdminIncidentsComponent', () => {
           url: 'https://github.com/dcfaight/amazon-angular-workshop/commit/abc1234',
         },
       ],
+      assignees: [],
+      owner: null,
+      needsPostmortem: false,
     },
   ];
 
@@ -145,5 +151,15 @@ describe('AdminIncidentsComponent', () => {
 
   it('should track incidents by id', () => {
     expect(component.trackByIncidentId(0, mockIncidents[0])).toBe(1);
+  });
+
+  it('should toggle timeline expansion by incident id', () => {
+    expect(component.expandedIncident).toBeNull();
+
+    component.toggleTimeline(1);
+    expect(component.expandedIncident).toBe(1);
+
+    component.toggleTimeline(1);
+    expect(component.expandedIncident).toBeNull();
   });
 });

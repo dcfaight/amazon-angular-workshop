@@ -47,6 +47,7 @@ interface GithubIssueRecord {
   updated_at: string;
   closed_at: string | null;
   labels: Array<string | GithubIssueLabel>;
+  assignees?: Array<{ login?: string }>;
   pull_request?: unknown;
 }
 
@@ -96,6 +97,7 @@ export class IncidentService {
   private mapIncident(record: GithubIssueRecord): IncidentItem {
     const labels = this.extractLabels(record.labels);
     const body = record.body ?? '';
+    const assignees = this.extractAssignees(record.assignees);
 
     return {
       id: record.id,
@@ -112,7 +114,17 @@ export class IncidentService {
       closedAt: record.closed_at,
       issueUrl: record.html_url,
       references: this.extractReferences(body),
+      assignees,
+      owner: assignees[0] ?? null,
+      needsPostmortem: labels.includes('needs-postmortem'),
     };
+  }
+
+  private extractAssignees(input: Array<{ login?: string }> | undefined): string[] {
+    return (input ?? [])
+      .map((assignee) => assignee.login ?? '')
+      .filter(Boolean)
+      .map((assignee) => assignee.toLowerCase());
   }
 
   private extractLabels(input: Array<string | GithubIssueLabel>): string[] {

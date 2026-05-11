@@ -44,7 +44,14 @@ describe('IncidentService', () => {
         created_at: '2026-05-11T10:00:00Z',
         updated_at: '2026-05-11T10:05:00Z',
         closed_at: null,
-        labels: [{ name: 'incident' }, { name: 'sev1' }, { name: 'mitigating' }, { name: 'customer-impact' }],
+        labels: [
+          { name: 'incident' },
+          { name: 'sev1' },
+          { name: 'mitigating' },
+          { name: 'customer-impact' },
+          { name: 'needs-postmortem' },
+        ],
+        assignees: [{ login: 'oncall-app' }],
       },
     ]);
 
@@ -53,6 +60,8 @@ describe('IncidentService', () => {
     expect(result[0].status).toBe('mitigating');
     expect(result[0].hasCustomerImpact).toBeTrue();
     expect(result[0].references[0].type).toBe('pull-request');
+    expect(result[0].owner).toBe('oncall-app');
+    expect(result[0].needsPostmortem).toBeTrue();
   });
 
   it('should filter out pull request items returned by GitHub issues API', () => {

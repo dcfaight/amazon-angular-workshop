@@ -1,0 +1,69 @@
+<section class="metrics-page">
+  <div class="top-nav">
+    <a class="secondary link" routerLink="/admin">Admin</a>
+    <a class="secondary link" routerLink="/admin/incidents">Incident Queue</a>
+  </div>
+
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">Operations Analytics</p>
+      <h2>Incident Metrics</h2>
+      <p class="subcopy">MTTR, severity distribution, ownership coverage, and aging open incidents.</p>
+    </div>
+    <button type="button" class="refresh-button" (click)="loadMetrics()" [disabled]="loading">
+      {{ loading ? 'Refreshing...' : 'Refresh Metrics' }}
+    </button>
+  </header>
+
+  <p *ngIf="loading" class="state-message">Loading metrics...</p>
+  <div *ngIf="errorMessage && !loading" class="state-card error" role="alert">{{ errorMessage }}</div>
+
+  <div *ngIf="!loading && !errorMessage" class="stats-grid">
+    <article class="stat-card cyan">
+      <span class="stat-label">Total Incidents</span>
+      <strong>{{ totalIncidents }}</strong>
+    </article>
+    <article class="stat-card red">
+      <span class="stat-label">Open</span>
+      <strong>{{ openIncidents }}</strong>
+    </article>
+    <article class="stat-card green">
+      <span class="stat-label">Resolved</span>
+      <strong>{{ resolvedIncidents }}</strong>
+    </article>
+    <article class="stat-card amber">
+      <span class="stat-label">MTTR (Hours)</span>
+      <strong>{{ mttrHours | number: '1.1-1' }}</strong>
+    </article>
+    <article class="stat-card blue">
+      <span class="stat-label">Owner Coverage</span>
+      <strong>{{ ownerCoveragePercent | number: '1.0-0' }}%</strong>
+    </article>
+  </div>
+
+  <section *ngIf="!loading && !errorMessage" class="detail-grid">
+    <article class="panel">
+      <h3>Severity Breakdown</h3>
+      <ul>
+        <li *ngFor="let sev of ['sev1', 'sev2', 'sev3', 'sev4', 'unknown']">
+          <span>{{ sev | uppercase }}</span>
+          <strong>{{ severityCounts[sev] ?? 0 }}</strong>
+        </li>
+      </ul>
+    </article>
+
+    <article class="panel">
+      <h3>Oldest Open Incidents</h3>
+      <ul *ngIf="oldestOpenIncidents.length; else noOpenIncidents">
+        <li *ngFor="let incident of oldestOpenIncidents">
+          <a [href]="incident.issueUrl" target="_blank" rel="noopener noreferrer">
+            #{{ incident.number }} {{ incident.title }}
+          </a>
+        </li>
+      </ul>
+      <ng-template #noOpenIncidents>
+        <p class="muted">No open incidents right now.</p>
+      </ng-template>
+    </article>
+  </section>
+</section>

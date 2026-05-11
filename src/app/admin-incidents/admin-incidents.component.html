@@ -2,6 +2,7 @@
   <div class="top-nav">
     <a class="secondary link" routerLink="/">Home</a>
     <a class="secondary link" routerLink="/admin">Admin</a>
+    <a class="secondary link" routerLink="/admin/incidents/metrics">Incident Metrics</a>
   </div>
 
   <header class="page-header">
@@ -136,15 +137,60 @@
         </div>
       </div>
 
+      <div class="incident-ops">
+        <div>
+          <span class="meta-label">Owner</span>
+          <span [class]="getOwnershipClass(incident)">{{ getOwner(incident) }}</span>
+          <div class="owner-assign">
+            <label [attr.for]="'owner-' + incident.id">Assign</label>
+            <select
+              [id]="'owner-' + incident.id"
+              [value]="getOwner(incident)"
+              (change)="assignOwner(incident.id, $any($event.target).value)"
+            >
+              <option value="unassigned">unassigned</option>
+              <option *ngFor="let owner of availableOwners" [value]="owner">{{ owner }}</option>
+            </select>
+            <a [href]="incident.issueUrl" target="_blank" rel="noopener noreferrer">Open in GitHub</a>
+          </div>
+        </div>
+        <div>
+          <span class="meta-label">Postmortem</span>
+          <span [class]="getPostmortemClass(incident)">{{ getPostmortemState(incident) }}</span>
+          <div class="postmortem-actions" *ngIf="incident.status === 'resolved'">
+            <button
+              type="button"
+              class="workflow-button"
+              (click)="startPostmortem(incident)"
+              [disabled]="getPostmortemState(incident) !== 'not-started'"
+            >
+              Start
+            </button>
+            <button
+              type="button"
+              class="workflow-button"
+              (click)="completePostmortem(incident)"
+              [disabled]="getPostmortemState(incident) !== 'in-progress'"
+            >
+              Complete
+            </button>
+            <a [href]="getPostmortemIssueUrl(incident)" target="_blank" rel="noopener noreferrer">
+              Open Template
+            </a>
+          </div>
+        </div>
+      </div>
+
       <p class="incident-body" *ngIf="incident.body">{{ incident.body }}</p>
 
+      <button type="button" class="timeline-toggle" (click)="toggleTimeline(incident.id)">
+        {{ expandedIncident === incident.id ? 'Hide Timeline' : 'View Timeline' }}
+      </button>
+      <section *ngIf="expandedIncident === incident.id" class="timeline-section">
+        <app-incident-timeline [issueNumber]="incident.number"></app-incident-timeline>
+      </section>
+
       <div class="reference-grid">
-              <button type="button" class="timeline-toggle" (click)="toggleTimeline(incident.id)">
-                {{ expandedIncident === incident.id ? 'Hide Timeline' : 'View Timeline' }}
-              </button>
-              <section *ngIf="expandedIncident === incident.id" class="timeline-section">
-                <app-incident-timeline [issueNumber]="incident.number"></app-incident-timeline>
-              </section>
         <div>
           <span class="meta-label">Linked PR</span>
           <a
