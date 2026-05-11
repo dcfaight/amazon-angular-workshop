@@ -1,0 +1,85 @@
+<h2>Products</h2>
+<span class="sr-only">Press Enter to open details, Escape to close modal.</span>
+<div class="filters-row">
+  <input
+    type="text"
+    placeholder="Search products..."
+    [(ngModel)]="searchTerm"
+    class="search-bar"
+  />
+  <select [(ngModel)]="selectedCategory" class="category-filter">
+    <option value="">All Categories</option>
+    <option *ngFor="let cat of categories" [value]="cat">{{ cat }}</option>
+  </select>
+  <select [(ngModel)]="sortBy" class="sort-filter">
+    <option value="">Sort By</option>
+    <option value="priceLowHigh">Price: Low to High</option>
+    <option value="priceHighLow">Price: High to Low</option>
+    <option value="rating">Top Rated</option>
+  </select>
+  <label class="rating-filter">
+    Min. Rating:
+    <input type="range" min="0" max="5" step="0.1" [(ngModel)]="minRating" />
+    <span>{{ minRating }}</span>
+  </label>
+  <label *ngIf="showSimulatedFailureToggle" class="simulate-filter">
+    <input
+      type="checkbox"
+      [(ngModel)]="simulateFailures"
+      (change)="onSimulatedFailuresChange()"
+    />
+    Simulate backend failures
+  </label>
+  <label *ngIf="showSimulatedFailureToggle && simulateFailures" class="simulate-filter">
+    Checkout failure mode:
+    <select
+      [(ngModel)]="simulateCheckoutFailureMode"
+      (change)="onCheckoutFailureModeChange()"
+    >
+      <option value="none">none</option>
+      <option value="checkout-unavailable">checkout-unavailable</option>
+      <option value="stock-changed">stock-changed</option>
+    </select>
+  </label>
+</div>
+<div class="product-list">
+  <div 
+   *ngFor="let product of filteredProducts"
+  class="product-card"
+  tabindex="0"
+  role="region"
+  [attr.aria-label]="product.title + ' ' + (product.inStock ? 'In Stock' : 'Out of Stock')"
+  routerLink="/product/{{product.id}}"
+  [class.out-of-stock]="!product.inStock"
+  >
+    <img [src]="product.imageUrl" [alt]="product.title" width="100" />
+    <h3>{{ product.title }}</h3>
+    <div class="product-category">{{ product.category }}</div>
+    <p>{{ product.description }}</p>
+    <strong class="price">\${{ product.price }}</strong>
+    <div class="product-rating">
+      <span *ngIf="product.rating">
+        <span class="star">★</span> {{ product.rating }} ({{ product.ratingCount | number }})
+      </span>
+    </div>
+    <button
+      (click)="addToCart(product); $event.stopPropagation()"
+      [disabled]="!product.inStock"
+    >
+      Add to Cart
+    </button>
+    <div class="stock-badges">
+      <span [ngClass]="getStockStateClass(product)">
+        <ng-container [ngSwitch]="getStockState(product)">
+          <svg *ngSwitchCase="'in-stock'" width="14" height="14" viewBox="0 0 20 20" fill="currentColor" style="margin-right:4px;vertical-align:middle;"><circle cx="10" cy="10" r="8" stroke="currentColor" stroke-width="2" fill="none"/><path d="M6 10l3 3 5-5" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+          <svg *ngSwitchCase="'low-stock'" width="14" height="14" viewBox="0 0 20 20" fill="currentColor" style="margin-right:4px;vertical-align:middle;"><circle cx="10" cy="10" r="8" stroke="currentColor" stroke-width="2" fill="none"/><path d="M10 6v4l2 2" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+          <svg *ngSwitchCase="'out-of-stock'" width="14" height="14" viewBox="0 0 20 20" fill="currentColor" style="margin-right:4px;vertical-align:middle;"><circle cx="10" cy="10" r="8" stroke="currentColor" stroke-width="2" fill="none"/><line x1="6" y1="6" x2="14" y2="14" stroke="currentColor" stroke-width="2"/><line x1="14" y1="6" x2="6" y2="14" stroke="currentColor" stroke-width="2"/></svg>
+        </ng-container>
+        {{ getStockStateLabel(product) }}
+      </span>
+      <span class="remaining-stock" *ngIf="product.inStock">
+        Remaining: {{ getRemainingStock(product) }}
+      </span>
+    </div>
+  </div>
+</div>

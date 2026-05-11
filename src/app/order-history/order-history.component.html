@@ -1,0 +1,131 @@
+<section class="order-history-page">
+  <div class="top-nav">
+    <a class="secondary link" routerLink="/">Home</a>
+    <a class="secondary link" routerLink="/cart">Cart</a>
+  </div>
+
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">Account</p>
+      <h2>Your Orders</h2>
+      <p class="subcopy">Track recent purchases, totals, and shipping details.</p>
+    </div>
+    <a class="shop-link" routerLink="/">Browse Products</a>
+  </header>
+
+  <p *ngIf="loading" class="state-message">Loading order history...</p>
+
+  <div *ngIf="errorMessage && !loading" class="state-card error" role="alert">
+    <p>{{ errorMessage }}</p>
+    <button type="button" class="retry-button" (click)="loadOrders()">Try Again</button>
+  </div>
+
+  <div *ngIf="!loading && !errorMessage && !orders.length" class="state-card empty">
+    <h3>No orders yet</h3>
+    <p>Once you complete checkout, your orders will appear here.</p>
+    <a class="shop-link" routerLink="/">Start Shopping</a>
+  </div>
+
+  <div *ngIf="!loading && !errorMessage && orders.length" class="order-list">
+    <article class="order-card" *ngFor="let order of orders; trackBy: trackByOrderId">
+      <div class="order-meta">
+        <div>
+          <p class="meta-label">Order Number</p>
+          <h3>#{{ getOrderNumber(order) }}</h3>
+        </div>
+        <div>
+          <p class="meta-label">Placed</p>
+          <p>{{ order.createdAt | date: 'mediumDate' }}</p>
+        </div>
+        <div>
+          <p class="meta-label">Items</p>
+          <p>{{ order.totalItems }}</p>
+        </div>
+        <div>
+          <p class="meta-label">Total</p>
+          <p>${{ order.total | number: '1.2-2' }}</p>
+        </div>
+        <div>
+          <p class="meta-label">Status</p>
+          <div class="status-stack">
+            <span [class]="getStatusClass(order)">{{ order.status }}</span>
+            <span *ngIf="order.isSeeded" class="seed-pill">Demo</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="progress-track" aria-label="Order status progression">
+        <div
+          class="progress-step"
+          *ngFor="let step of statusSteps"
+          [class.reached]="isStepReached(order, step)"
+          [class.current]="order.status === step"
+        >
+          <span class="progress-dot"></span>
+          <span class="progress-label">{{ step }}</span>
+        </div>
+      </div>
+
+      <div class="order-details-grid">
+        <div class="detail-card">
+          <span class="detail-label">Placed By</span>
+          <strong>{{ order.userName }}</strong>
+          <small>Customer ID {{ order.userId }}</small>
+        </div>
+
+        <div class="detail-card">
+          <span class="detail-label">Shipped To</span>
+          <strong>{{ order.shippingAddress.fullName }}</strong>
+          <small>{{ order.shippingAddress.addressLine1 }}</small>
+          <small>{{ order.shippingAddress.city }}, {{ order.shippingAddress.state }} {{ order.shippingAddress.zip }}</small>
+        </div>
+
+        <div class="detail-card">
+          <span class="detail-label">Payment</span>
+          <strong>{{ order.paymentMethod | titlecase }}</strong>
+          <small>Total {{ order.totalItems }} item{{ order.totalItems === 1 ? '' : 's' }}</small>
+        </div>
+
+        <div class="detail-card">
+          <span class="detail-label">Delivery Status</span>
+          <strong>{{ order.status | titlecase }}</strong>
+          <small *ngIf="order.isSeeded">Demo order seeded for review</small>
+          <small *ngIf="!order.isSeeded">Live order saved from checkout</small>
+        </div>
+      </div>
+
+      <div class="order-body">
+        <section class="shipping-details">
+          <h4>Ship To</h4>
+          <p>{{ getShippingName(order) }}</p>
+          <p>{{ getShippingLine1(order) }}</p>
+          <p>
+            {{ getShippingCityLine(order) }}
+          </p>
+        </section>
+
+        <section class="shipping-details">
+          <h4>Payment & Receipt</h4>
+          <p><strong>Method:</strong> {{ getPaymentLabel(order) }}</p>
+          <p><strong>Total:</strong> ${{ order.total | number: '1.2-2' }}</p>
+          <p *ngIf="order.isSeeded">Seeded demo order for history preview.</p>
+          <p *ngIf="!order.isSeeded">Persisted from your checkout flow.</p>
+        </section>
+
+        <section class="order-items">
+          <h4>Items</h4>
+          <ul>
+            <li *ngFor="let item of order.items">
+              <img [src]="item.imageUrl" [alt]="item.title" width="56" height="56" />
+              <div class="item-copy">
+                <strong>{{ item.title }}</strong>
+                <span>Qty {{ item.quantity }}</span>
+              </div>
+              <strong>${{ (item.price * item.quantity) | number: '1.2-2' }}</strong>
+            </li>
+          </ul>
+        </section>
+      </div>
+    </article>
+  </div>
+</section>

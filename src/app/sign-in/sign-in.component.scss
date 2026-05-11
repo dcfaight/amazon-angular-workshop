@@ -1,0 +1,73 @@
+.sign-in-shell {
+  min-height: calc(100vh - 120px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.sign-in-card {
+  width: min(400px, 100%);
+  display: grid;
+  gap: 0.8rem;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  padding: 1.2rem;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+}
+
+:host-context(.dark-theme) .sign-in-card {
+  background: #1f2937;
+  border-color: #374151;
+  color: #e5e7eb;
+}
+
+:host-context(.dark-theme) .hint {
+  color: #cbd5e1;
+}
+
+:host-context(.dark-theme) input,
+:host-context(.dark-theme) select {
+  background: #111827;
+  color: #e5e7eb;
+  border-color: #4b5563;
+}
+
+.hint {
+  margin: 0;
+  color: #555;
+}
+
+label {
+  display: grid;
+  gap: 0.35rem;
+  font-weight: 600;
+}
+
+input,
+select,
+button {
+  padding: 0.55rem 0.7rem;
+  border-radius: 6px;
+  border: 1px solid #bbb;
+  font-size: 0.95rem;
+}
+
+button {
+  background: #ff9900;
+  color: #232f3e;
+  border-color: #ff9900;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.demo-actions {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.error {
+  margin: 0;
+  color: #b00020;
+}

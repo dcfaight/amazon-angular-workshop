@@ -1,0 +1,258 @@
+<section class="checkout-page">
+  <div class="top-nav">
+    <button type="button" class="secondary" (click)="goBack()">Back</button>
+    <a class="secondary link" routerLink="/">Home</a>
+  </div>
+
+  <p class="breadcrumb"><a routerLink="/">Home</a> / <span aria-current="page">Checkout</span></p>
+
+  <div class="checkout-container">
+    <!-- Main Form Area -->
+    <div class="checkout-form-area">
+      <header class="checkout-header" *ngIf="step !== 'success'">
+        <h2>Checkout</h2>
+        <div class="step-indicator">
+          <span class="step-number" [attr.aria-current]="step === 'shipping'">
+            <span class="number">1</span> Shipping
+          </span>
+          <span class="step-divider"></span>
+          <span class="step-number" [attr.aria-current]="step === 'payment'">
+            <span class="number">2</span> Payment
+          </span>
+          <span class="step-divider"></span>
+          <span class="step-number" [attr.aria-current]="step === 'review'">
+            <span class="number">3</span> Review
+          </span>
+        </div>
+      </header>
+
+      <p class="error" *ngIf="errorMessage" role="alert">{{ errorMessage }}</p>
+
+      <ng-container [ngSwitch]="step">
+        <form *ngSwitchCase="'shipping'" class="checkout-form" (ngSubmit)="goToPayment()" novalidate>
+          <div class="form-group">
+            <label for="fullName">
+              Full Name <span class="required" aria-label="required">*</span>
+            </label>
+            <input
+              id="fullName"
+              name="fullName"
+              type="text"
+              [(ngModel)]="shipping.fullName"
+              required
+              aria-required="true"
+            />
+            <small class="validation-hint" *ngIf="!shipping.fullName && formSubmitted">
+              Full name is required
+            </small>
+          </div>
+
+          <div class="form-group">
+            <label for="addressLine1">
+              Street Address <span class="required" aria-label="required">*</span>
+            </label>
+            <input
+              id="addressLine1"
+              name="addressLine1"
+              type="text"
+              [(ngModel)]="shipping.addressLine1"
+              required
+              aria-required="true"
+            />
+            <small class="validation-hint" *ngIf="!shipping.addressLine1 && formSubmitted">
+              Address is required
+            </small>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="city">
+                City <span class="required" aria-label="required">*</span>
+              </label>
+              <input
+                id="city"
+                name="city"
+                type="text"
+                [(ngModel)]="shipping.city"
+                required
+                aria-required="true"
+              />
+              <small class="validation-hint" *ngIf="!shipping.city && formSubmitted">
+                City is required
+              </small>
+            </div>
+
+            <div class="form-group">
+              <label for="state">
+                State <span class="required" aria-label="required">*</span>
+              </label>
+              <input
+                id="state"
+                name="state"
+                type="text"
+                maxlength="2"
+                [(ngModel)]="shipping.state"
+                required
+                aria-required="true"
+              />
+              <small class="validation-hint" *ngIf="!shipping.state && formSubmitted">
+                State is required
+              </small>
+            </div>
+
+            <div class="form-group">
+              <label for="zip">
+                ZIP <span class="required" aria-label="required">*</span>
+              </label>
+              <input
+                id="zip"
+                name="zip"
+                type="text"
+                maxlength="5"
+                [(ngModel)]="shipping.zip"
+                required
+                aria-required="true"
+              />
+              <small class="validation-hint" *ngIf="!shipping.zip && formSubmitted">
+                ZIP is required
+              </small>
+            </div>
+          </div>
+
+          <div class="actions">
+            <button type="submit" class="primary">Continue to Payment</button>
+          </div>
+        </form>
+
+        <form *ngSwitchCase="'payment'" class="checkout-form" (ngSubmit)="goToReview()" novalidate>
+          <fieldset>
+            <legend>Payment Method <span class="required" aria-label="required">*</span></legend>
+            <div class="radio-group">
+              <label>
+                <input type="radio" name="method" value="card" [(ngModel)]="payment.method" />
+                Credit Card
+              </label>
+              <label>
+                <input type="radio" name="method" value="paypal" [(ngModel)]="payment.method" />
+                PayPal
+              </label>
+            </div>
+          </fieldset>
+
+          <div *ngIf="payment.method === 'card'" class="form-group">
+            <label for="cardLast4">
+              Card Last 4 Digits <span class="required" aria-label="required">*</span>
+            </label>
+            <input
+              id="cardLast4"
+              name="cardLast4"
+              type="text"
+              maxlength="4"
+              placeholder="1234"
+              [(ngModel)]="payment.cardLast4"
+              required
+              aria-required="true"
+            />
+            <small class="validation-hint" *ngIf="!payment.cardLast4 && formSubmitted">
+              Card last 4 is required
+            </small>
+          </div>
+
+          <div class="actions">
+            <button type="button" class="secondary" (click)="backToShipping()">Back</button>
+            <button type="submit" class="primary">Continue to Review</button>
+          </div>
+        </form>
+
+        <section *ngSwitchCase="'review'" class="review">
+          <h3>Order Review</h3>
+          <div class="review-items">
+            <ul>
+              <li *ngFor="let line of cartLineItems" class="review-item">
+                <img [src]="line.product.imageUrl" [alt]="line.product.title" width="48" />
+                <span class="item-info">
+                  <span class="title">{{ line.product.title }}</span>
+                  <span class="qty">Qty: {{ line.quantity }}</span>
+                </span>
+                <strong>${{ line.lineTotal.toFixed(2) }}</strong>
+              </li>
+            </ul>
+          </div>
+
+          <div class="review-summary">
+            <p class="subtotal">Subtotal: <strong>${{ subtotal.toFixed(2) }}</strong></p>
+            <p class="estimated-delivery">Estimated delivery: <strong>5-7 business days</strong></p>
+          </div>
+
+          <div class="actions">
+            <button type="button" class="secondary" (click)="backToPayment()">Back</button>
+            <button
+              type="button"
+              class="primary"
+              [disabled]="isSubmitting"
+              (click)="placeOrder()"
+            >
+              {{ isSubmitting ? 'Placing Order...' : 'Place Order' }}
+            </button>
+          </div>
+        </section>
+
+        <section *ngSwitchCase="'success'" class="success">
+          <div class="success-icon">✓</div>
+          <h3>Order Confirmed!</h3>
+          <p *ngIf="orderConfirmation as confirmation" class="order-id">
+            Order <strong>#{{ confirmation.orderId }}</strong>
+          </p>
+          <div *ngIf="orderConfirmation as confirmation" class="order-details">
+            <p><span>Items:</span> <strong>{{ confirmation.itemCount }}</strong></p>
+            <p><span>Total:</span> <strong>${{ confirmation.total.toFixed(2) }}</strong></p>
+            <p><span>Estimated delivery:</span> <strong>{{ confirmation.etaDays }} business days</strong></p>
+          </div>
+          <p class="confirmation-message">
+            A confirmation email has been sent to your address.
+          </p>
+
+          <div class="actions">
+            <button type="button" class="primary" (click)="continueShopping()">
+              Continue Shopping
+            </button>
+            <a class="secondary link" routerLink="/orders">View Orders</a>
+          </div>
+        </section>
+      </ng-container>
+    </div>
+
+    <!-- Order Summary Sidebar -->
+    <aside class="order-summary" *ngIf="step !== 'success'">
+      <h3>Order Summary</h3>
+      <ul class="summary-items">
+        <li *ngFor="let line of cartLineItems" class="summary-item">
+          <span class="summary-title">{{ line.product.title }}</span>
+          <span class="summary-qty">x{{ line.quantity }}</span>
+          <span class="summary-price">${{ line.lineTotal.toFixed(2) }}</span>
+        </li>
+      </ul>
+
+      <div class="summary-totals">
+        <div class="summary-row">
+          <span>Subtotal</span>
+          <strong>${{ subtotal.toFixed(2) }}</strong>
+        </div>
+        <div class="summary-row">
+          <span>Shipping</span>
+          <strong>Free</strong>
+        </div>
+        <div class="summary-row total">
+          <span>Total</span>
+          <strong>${{ subtotal.toFixed(2) }}</strong>
+        </div>
+      </div>
+
+      <p class="delivery-info">📦 Estimated delivery: 5-7 business days</p>
+    </aside>
+  </div>
+
+  <div class="back-link" *ngIf="step !== 'success'">
+    <a routerLink="/cart">Back to Cart</a>
+  </div>
+</section>

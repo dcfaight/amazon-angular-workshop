@@ -1,1 +1,141 @@
 /* You can add global styles to this file, and also import other style files */
+
+:root {
+	--surface: #ffffff;
+	--text: #111827;
+}
+
+.dark-theme {
+	--surface: #1f2937;
+	--text: #e5e7eb;
+}
+
+body {
+	margin: 0;
+	font-family: "Amazon Ember", Arial, sans-serif;
+	color: var(--text);
+}
+
+.sr-only {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	margin: -1px;
+	padding: 0;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	border: 0;
+}
+
+.cart-overlay {
+	position: fixed;
+	inset: 0;
+	background: rgba(0, 0, 0, 0.45);
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	z-index: 1001;
+}
+
+.cart-summary {
+	background: var(--surface);
+	border-radius: 12px;
+	padding: 1.7rem;
+	min-width: 360px;
+	box-shadow: 0 8px 32px rgba(34, 34, 34, 0.35);
+	max-height: 70vh;
+	overflow-y: auto;
+}
+
+.cart-summary img {
+	margin-right: 12px;
+	vertical-align: middle;
+	border-radius: 4px;
+}
+
+.cart-summary ul {
+	margin: 1em 0;
+	padding-left: 0;
+	list-style: none;
+}
+
+.cart-summary li {
+	margin: 0.45em 0;
+	font-size: 1.09rem;
+	display: flex;
+	align-items: center;
+}
+
+.cart-summary button {
+	display: block;
+	margin: 1rem auto 0;
+	background: var(--accent, #ff9900);
+	color: var(--accent-strong, #232f3e);
+	font-weight: bold;
+	border: none;
+	padding: 0.7em 1.4em;
+	border-radius: 6px;
+	cursor: pointer;
+}
+
+.toast {
+	position: fixed;
+	bottom: 10%;
+	left: 50%;
+	transform: translateX(-50%);
+	background: var(--header-bg, #232f3e);
+	color: var(--header-text, #fff);
+	padding: 1em 2em;
+	border-radius: 8px;
+	font-size: 1.12rem;
+	box-shadow: 0 2px 20px rgba(0, 0, 0, 0.21);
+	z-index: 9999;
+	animation: fadein 0.3s, fadeout 0.8s 1.7s;
+}
+
+.stock-state {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0.15rem 0.5rem;
+	border-radius: 999px;
+	font-size: 0.8rem;
+	font-weight: 700;
+	line-height: 1.2;
+	gap: 0.25em;
+	svg {
+		display: inline-block;
+		vertical-align: middle;
+		margin-right: 0.25em;
+	}
+}
+
+.stock-state--in-stock {
+	background: #e8f7ee;
+	color: #0f7a3f;
+}
+
+.stock-state--low-stock {
+	background: #fff2d9;
+	color: #8a4300;
+}
+
+.stock-state--out-of-stock {
+	background: #fde8e8;
+	color: #b42318;
+}
+
+@keyframes fadein {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+
+@keyframes fadeout {
+	to {
+		opacity: 0;
+	}
+}

@@ -1,0 +1,50 @@
+<section class="sign-in-shell">
+  <form class="sign-in-card" (ngSubmit)="submit()">
+    <h2>Sign In</h2>
+    <p *ngIf="useAmplifyAuth" class="hint">Use Cognito credentials.</p>
+    <p *ngIf="!useAmplifyAuth" class="hint">Development mode sign-in (local).</p>
+
+    <label>
+      Username or Email
+      <input
+        type="text"
+        name="username"
+        [(ngModel)]="username"
+        data-testid="username-input"
+        required
+        autocomplete="username"
+      />
+    </label>
+
+    <label>
+      Password
+      <input
+        type="password"
+        name="password"
+        [(ngModel)]="password"
+        data-testid="password-input"
+        required
+        autocomplete="current-password"
+      />
+    </label>
+
+    <label *ngIf="!useAmplifyAuth">
+      Tenant
+      <select name="tenantId" [(ngModel)]="tenantId">
+        <option value="tenant-a">tenant-a</option>
+        <option value="tenant-b">tenant-b</option>
+      </select>
+    </label>
+
+    <div *ngIf="!useAmplifyAuth" class="demo-actions">
+      <button type="button" (click)="signInAsDemoUser('tenant-a')">Sign In As Demo Tenant A</button>
+      <button type="button" (click)="signInAsDemoUser('tenant-b')">Sign In As Demo Tenant B</button>
+    </div>
+
+    <p *ngIf="errorMessage" class="error">{{ errorMessage }}</p>
+
+    <button type="submit" data-testid="sign-in-button" [disabled]="isSubmitting">
+      {{ isSubmitting ? 'Signing In...' : 'Sign In' }}
+    </button>
+  </form>
+</section>
