@@ -209,6 +209,19 @@ describe('CheckoutService', () => {
   });
 
   describe('reservation failure handling', () => {
+    it('should rethrow CheckoutError instances without wrapping', async () => {
+      const typedError = new CheckoutError({
+        reason: 'PAYMENT_DECLINED',
+        message: 'Card declined',
+      });
+
+      reservationService.validateAndReserve.and.resolveTo('RES-123');
+      reservationService.confirmReservation.and.rejectWith(typedError);
+
+      await expectAsync(service.placeOrder(validRequest)).toBeRejectedWith(typedError);
+      expect(reservationService.cancelReservation).toHaveBeenCalledWith('RES-123');
+    });
+
     it('should cancel reservation when confirmation fails', async () => {
       reservationService.validateAndReserve.and.resolveTo('RES-123');
       reservationService.confirmReservation.and.rejectWith(
@@ -370,6 +383,12 @@ describe('CheckoutService', () => {
       const result = await service.placeOrder(customRequest);
 
       expect(result.total).toBe(123.45);
+    });
+
+    it('should execute the network latency helper implementation', async () => {
+      (service as any).simulateNetworkLatency.and.callThrough();
+
+      await expectAsync((service as any).simulateNetworkLatency()).toBeResolved();
     });
   });
 });

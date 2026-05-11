@@ -135,9 +135,41 @@ describe('ReservationService', () => {
   });
 
   describe('confirmReservation', () => {
-    xit('should mark reservation as confirmed when stocks are available', async () => {
-      // TODO: Fix HTTP mock sequencing for multiple requests to same URL
-      // The test is skipped due to Angular HttpClientTestingBackend issues with sequential expectOne calls
+    it('should mark reservation as confirmed when stocks are available', async () => {
+      const items = [{ productId: 1, title: 'Product', quantity: 2 }];
+
+      const reservePromise = service.validateAndReserve(items);
+      const reserveFetch = http.expectOne('http://192.168.1.5:3000/products/1');
+      reserveFetch.flush(mockProduct(1, 10));
+
+      const reservationId = await reservePromise;
+
+      const confirmPromise = service.confirmReservation(reservationId);
+
+      const confirmFetch = http.expectOne({
+        method: 'GET',
+        url: 'http://192.168.1.5:3000/products/1',
+      });
+      confirmFetch.flush(mockProduct(1, 10));
+
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
+
+      const updateReq = http.expectOne({
+        method: 'PUT',
+        url: 'http://192.168.1.5:3000/products/1',
+      });
+      expect(updateReq.request.body).toEqual(
+        jasmine.objectContaining({
+          stockCount: 8,
+          inStock: true,
+        })
+      );
+      updateReq.flush(mockProduct(1, 8));
+
+      await confirmPromise;
+
+      const reservation = service.getReservation(reservationId);
+      expect(reservation?.status).toBe('confirmed');
     });
 
     it('should fail if reservation does not exist', async () => {

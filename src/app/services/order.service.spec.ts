@@ -388,6 +388,34 @@ describe('OrderService', () => {
     expect(saved[0].orderNumber).toBe('ORD-100');
   });
 
+  it('should return the same order when advancing a terminal status', () => {
+    const shippedOrder: Order = {
+      ...mockOrders[0],
+      status: 'shipped',
+    };
+
+    service.advanceOrderStatus(shippedOrder).subscribe((order) => {
+      expect(order).toEqual(shippedOrder);
+    });
+
+    httpMock.expectNone('http://192.168.1.5:3000/orders/1');
+  });
+
+  it('should build fallback user details when resolveUser does not match current user', () => {
+    const resolved = (service as any).resolveUser({
+      userId: 'other-user',
+      userName: 'Other User',
+      tenantId: 'tenant-b',
+    });
+
+    expect(resolved).toEqual({
+      id: 'other-user',
+      name: 'Other User',
+      tenantId: 'tenant-b',
+      roles: [],
+    });
+  });
+
   it('should advance an order status and persist the update locally', () => {
     service.advanceOrderStatus(mockOrders[0]).subscribe((order) => {
       expect(order.status).toBe('confirmed');
