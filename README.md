@@ -152,6 +152,32 @@ Additional coverage workflow:
 
 - `.github/workflows/coverage.yml` (manual trigger + nightly schedule)
 
+### Where to Find Coverage in 10 Seconds
+
+In GitHub:
+
+1. Open `Actions`.
+2. Click `CI` (or `Coverage`).
+3. Open the latest run.
+4. Open the job (`build-and-test` or `coverage`).
+5. In the run page, open the `Summary` tab and find the `Coverage` section.
+6. Use the `coverage-report` artifact in the Artifacts area for the full HTML report.
+
+Example summary you should see:
+
+```text
+## Coverage
+Threshold: 95%
+Status: PASS
+
+| Metric     | Value | Result |
+|-----------|------:|--------|
+| Statements| 100%  | PASS   |
+| Branches  | 100%  | PASS   |
+| Functions | 100%  | PASS   |
+| Lines     | 100%  | PASS   |
+```
+
 ## Always Run Latest Main Checklist
 
 Use this quick checklist when rerunning Actions or agents:
