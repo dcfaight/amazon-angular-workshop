@@ -4,6 +4,7 @@ import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angula
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { AdminService } from '../services/admin.service';
+import { InventoryAnalytics, InventoryAnalyticsService } from '../services/inventory-analytics.service';
 import { ToastService } from '../services/toast.service';
 import { Product } from '../models/product';
 
@@ -34,6 +35,7 @@ export class AdminComponent implements OnInit, OnDestroy {
   constructor(
     private adminService: AdminService,
     private toastService: ToastService,
+    private inventoryAnalyticsService: InventoryAnalyticsService,
     private fb: FormBuilder
   ) {
     this.form = this.fb.group({
@@ -92,6 +94,10 @@ export class AdminComponent implements OnInit, OnDestroy {
       (sum, product) => sum + product.price * this.getStockCount(product),
       0
     );
+  }
+
+  get inventoryAnalytics(): InventoryAnalytics {
+    return this.inventoryAnalyticsService.analyze(this.products);
   }
 
   loadProducts(): void {

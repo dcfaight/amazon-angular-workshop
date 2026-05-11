@@ -4,6 +4,7 @@ import { CommonModule } from '@angular/common';
 import { of, throwError } from 'rxjs';
 import { AdminComponent } from './admin.component';
 import { AdminService } from '../services/admin.service';
+import { InventoryAnalyticsService } from '../services/inventory-analytics.service';
 import { ToastService } from '../services/toast.service';
 import { Product } from '../models/product';
 
@@ -24,6 +25,7 @@ describe('AdminComponent', () => {
   let component: AdminComponent;
   let fixture: ComponentFixture<AdminComponent>;
   let adminService: jasmine.SpyObj<AdminService>;
+  let inventoryAnalyticsService: InventoryAnalyticsService;
   let toastService: jasmine.SpyObj<ToastService>;
 
   beforeEach(async () => {
@@ -44,6 +46,7 @@ describe('AdminComponent', () => {
 
     fixture = TestBed.createComponent(AdminComponent);
     component = fixture.componentInstance;
+    inventoryAnalyticsService = TestBed.inject(InventoryAnalyticsService);
     fixture.detectChanges();
   });
 
@@ -107,6 +110,31 @@ describe('AdminComponent', () => {
 
     expect(component.lowStockProducts).toBe(1);
     expect(component.catalogValue).toBeCloseTo(59.98, 2);
+  });
+
+  it('should provide inventory analytics summary from products', () => {
+    component.products = [
+      { ...mockProduct, id: 1, stockCount: 10, price: 30, inStock: true },
+      { ...mockProduct, id: 2, stockCount: 2, price: 50, inStock: true },
+      { ...mockProduct, id: 3, stockCount: 0, price: 90, inStock: false },
+    ];
+
+    const analytics = component.inventoryAnalytics;
+
+    expect(analytics.totalUnitsOnHand).toBe(12);
+    expect(analytics.outOfStockProducts).toBe(1);
+    expect(analytics.atRiskProducts.map((item) => item.id)).toEqual([2]);
+    expect(analytics.topInventoryValueProducts[0].id).toBe(1);
+  });
+
+  it('should use InventoryAnalyticsService for dashboard calculations', () => {
+    const spy = spyOn(inventoryAnalyticsService, 'analyze').and.callThrough();
+    component.products = [{ ...mockProduct, id: 9, stockCount: 3 }];
+
+    const analytics = component.inventoryAnalytics;
+
+    expect(spy).toHaveBeenCalledWith(component.products);
+    expect(analytics.totalUnitsOnHand).toBe(3);
   });
 
   it('should show toast when loading fails', fakeAsync(() => {

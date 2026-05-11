@@ -77,6 +77,107 @@
 .stat-card.blue { background: linear-gradient(135deg, #eff6ff, #dbeafe); }
 .stat-card.slate { background: linear-gradient(135deg, #f8fafc, #e2e8f0); }
 
+.analytics-panel {
+  border-radius: 18px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: linear-gradient(140deg, #f8fafc, #eef2ff);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+  padding: 1.15rem;
+  margin-bottom: 1.5rem;
+}
+
+.analytics-header {
+  display: grid;
+  gap: 0.2rem;
+  margin-bottom: 0.85rem;
+
+  h3 {
+    margin: 0;
+    color: #1e293b;
+    font-size: 1.05rem;
+  }
+
+  small {
+    color: #475569;
+  }
+}
+
+.analytics-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.7rem;
+  margin-bottom: 0.9rem;
+
+  @media (max-width: 900px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.analytics-card {
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  padding: 0.8rem;
+  display: grid;
+  gap: 0.25rem;
+
+  strong {
+    font-size: 1.3rem;
+    color: #0f172a;
+  }
+}
+
+.analytics-label {
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  font-size: 0.68rem;
+  color: #475569;
+}
+
+.analytics-lists {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.8rem;
+
+  @media (max-width: 900px) {
+    grid-template-columns: 1fr;
+  }
+
+  article {
+    background: #fff;
+    border-radius: 12px;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    padding: 0.8rem;
+  }
+
+  h4 {
+    margin: 0 0 0.6rem;
+    color: #1e293b;
+    font-size: 0.92rem;
+  }
+
+  ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 0.35rem;
+  }
+
+  li {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+    color: #334155;
+  }
+}
+
+.muted-copy {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.85rem;
+}
+
 /* ── Add / Edit Form ── */
 .form-panel {
   background: var(--surface, #f9f9f9);

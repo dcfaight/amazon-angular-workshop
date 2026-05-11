@@ -37,6 +37,56 @@
     </article>
   </div>
 
+  <section class="analytics-panel" *ngIf="!loading && products.length" aria-label="Inventory analytics dashboard">
+    <div class="analytics-header">
+      <h3>Inventory Analytics</h3>
+      <small>Risk and value indicators for current stock</small>
+    </div>
+
+    <div class="analytics-grid">
+      <article class="analytics-card">
+        <span class="analytics-label">Units On Hand</span>
+        <strong>{{ inventoryAnalytics.totalUnitsOnHand }}</strong>
+      </article>
+      <article class="analytics-card">
+        <span class="analytics-label">Out of Stock</span>
+        <strong>{{ inventoryAnalytics.outOfStockProducts }}</strong>
+      </article>
+      <article class="analytics-card">
+        <span class="analytics-label">Low Stock Rate</span>
+        <strong>{{ inventoryAnalytics.lowStockRate | number:'1.0-1' }}%</strong>
+      </article>
+    </div>
+
+    <div class="analytics-lists">
+      <article>
+        <h4>Top At-Risk Items</h4>
+        <ul *ngIf="inventoryAnalytics.atRiskProducts.length; else noRiskItems">
+          <li *ngFor="let product of inventoryAnalytics.atRiskProducts">
+            <span>{{ product.title }}</span>
+            <strong>{{ product.stockCount }} left</strong>
+          </li>
+        </ul>
+        <ng-template #noRiskItems>
+          <p class="muted-copy">No low-stock products right now.</p>
+        </ng-template>
+      </article>
+
+      <article>
+        <h4>Highest Inventory Value</h4>
+        <ul *ngIf="inventoryAnalytics.topInventoryValueProducts.length; else noValueItems">
+          <li *ngFor="let product of inventoryAnalytics.topInventoryValueProducts">
+            <span>{{ product.title }}</span>
+            <strong>${{ product.inventoryValue | number:'1.2-2' }}</strong>
+          </li>
+        </ul>
+        <ng-template #noValueItems>
+          <p class="muted-copy">No stocked items to evaluate.</p>
+        </ng-template>
+      </article>
+    </div>
+  </section>
+
   <!-- Add / Edit Form -->
   <div class="form-panel" *ngIf="showForm" role="dialog" aria-label="Product form">
     <h3>{{ editingProduct ? 'Edit Product' : 'New Product' }}</h3>
