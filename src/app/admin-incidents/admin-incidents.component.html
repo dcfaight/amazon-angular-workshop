@@ -1,0 +1,129 @@
+<section class="incidents-page">
+  <div class="top-nav">
+    <a class="secondary link" routerLink="/">Home</a>
+    <a class="secondary link" routerLink="/admin">Admin</a>
+  </div>
+
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">Operations</p>
+      <h2>Incident Queue</h2>
+      <p class="subcopy">
+        Live incidents sourced from GitHub Issues for triage and response tracking.
+      </p>
+    </div>
+    <button type="button" class="refresh-button" (click)="loadIncidents()" [disabled]="loading">
+      {{ loading ? 'Refreshing...' : 'Refresh Queue' }}
+    </button>
+  </header>
+
+  <div class="stats-grid" *ngIf="!loading && incidents.length">
+    <article class="stat-card red">
+      <span class="stat-label">Open Incidents</span>
+      <strong>{{ openIncidents }}</strong>
+      <small>active queue items</small>
+    </article>
+    <article class="stat-card orange">
+      <span class="stat-label">Critical (SEV1/SEV2)</span>
+      <strong>{{ criticalIncidents }}</strong>
+      <small>needs immediate focus</small>
+    </article>
+    <article class="stat-card gold">
+      <span class="stat-label">Customer Impact</span>
+      <strong>{{ customerImpactIncidents }}</strong>
+      <small>user-facing degradations</small>
+    </article>
+    <article class="stat-card green">
+      <span class="stat-label">Resolved</span>
+      <strong>{{ resolvedIncidents }}</strong>
+      <small>closed or resolved incidents</small>
+    </article>
+  </div>
+
+  <p *ngIf="lastRefreshedAt && !loading" class="refresh-copy">
+    Last refreshed {{ lastRefreshedAt | date: 'medium' }}
+  </p>
+
+  <p *ngIf="loading" class="state-message">Loading incidents from GitHub...</p>
+
+  <div *ngIf="errorMessage && !loading" class="state-card error" role="alert">
+    <p>{{ errorMessage }}</p>
+    <button type="button" class="retry-button" (click)="loadIncidents()">Try Again</button>
+  </div>
+
+  <div *ngIf="!loading && !errorMessage && !incidents.length" class="state-card empty">
+    <h3>No incidents found</h3>
+    <p>Create a new issue using the Incident Report template to populate this queue.</p>
+    <a class="secondary link" href="https://github.com/dcfaight/amazon-angular-workshop/issues/new/choose" target="_blank" rel="noopener noreferrer">
+      Open GitHub Issue Templates
+    </a>
+  </div>
+
+  <div *ngIf="!loading && !errorMessage && incidents.length" class="incident-list">
+    <article class="incident-card" *ngFor="let incident of incidents; trackBy: trackByIncidentId">
+      <header class="incident-header">
+        <div>
+          <h3>
+            <a [href]="incident.issueUrl" target="_blank" rel="noopener noreferrer">
+              #{{ incident.number }} {{ incident.title }}
+            </a>
+          </h3>
+          <p class="issue-url">{{ incident.issueUrl }}</p>
+        </div>
+        <div class="badges">
+          <span [class]="getSeverityClass(incident)">{{ incident.severity }}</span>
+          <span [class]="getStatusClass(incident)">{{ incident.status }}</span>
+          <span *ngIf="incident.hasCustomerImpact" class="impact-pill">customer-impact</span>
+        </div>
+      </header>
+
+      <div class="incident-meta">
+        <div>
+          <span class="meta-label">Created</span>
+          <strong>{{ incident.createdAt | date: 'medium' }}</strong>
+        </div>
+        <div>
+          <span class="meta-label">Updated</span>
+          <strong>{{ incident.updatedAt | date: 'medium' }}</strong>
+        </div>
+        <div>
+          <span class="meta-label">State</span>
+          <strong>{{ incident.state }}</strong>
+        </div>
+        <div>
+          <span class="meta-label">Labels</span>
+          <strong>{{ incident.labels.join(', ') }}</strong>
+        </div>
+      </div>
+
+      <p class="incident-body" *ngIf="incident.body">{{ incident.body }}</p>
+
+      <div class="reference-grid">
+        <div>
+          <span class="meta-label">Linked PR</span>
+          <a
+            *ngIf="getReferenceByType(incident, 'pull-request') as prUrl; else noPr"
+            [href]="prUrl"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {{ prUrl }}
+          </a>
+          <ng-template #noPr><span class="muted">None</span></ng-template>
+        </div>
+        <div>
+          <span class="meta-label">Linked Commit</span>
+          <a
+            *ngIf="getReferenceByType(incident, 'commit') as commitUrl; else noCommit"
+            [href]="commitUrl"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {{ commitUrl }}
+          </a>
+          <ng-template #noCommit><span class="muted">None</span></ng-template>
+        </div>
+      </div>
+    </article>
+  </div>
+</section>

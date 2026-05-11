@@ -5,6 +5,7 @@ import { CartComponent } from './cart/cart.component';
 import { CheckoutComponent } from './checkout/checkout.component';
 import { SignInComponent } from './sign-in/sign-in.component';
 import { AdminComponent } from './admin/admin.component';
+import { AdminIncidentsComponent } from './admin-incidents/admin-incidents.component';
 import { OrderHistoryComponent } from './order-history/order-history.component';
 import { authGuard } from './guards/auth.guard';
 import { adminGuard } from './guards/admin.guard';
@@ -17,5 +18,6 @@ export const routes: Routes = [
   { path: 'checkout', component: CheckoutComponent, canActivate: [authGuard] },
   { path: 'orders', component: OrderHistoryComponent, canActivate: [authGuard] },
   { path: 'admin', component: AdminComponent, canActivate: [authGuard, adminGuard] },
+  { path: 'admin/incidents', component: AdminIncidentsComponent, canActivate: [authGuard, adminGuard] },
   { path: '**', redirectTo: '' }
 ];

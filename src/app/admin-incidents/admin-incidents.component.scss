@@ -1,0 +1,294 @@
+.incidents-page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+.top-nav {
+  display: flex;
+  gap: 0.8rem;
+  margin-bottom: 1rem;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+
+  h2 {
+    margin: 0;
+    font-size: 2rem;
+    line-height: 1.15;
+  }
+}
+
+.eyebrow {
+  margin: 0 0 0.3rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  color: #b45309;
+}
+
+.subcopy {
+  margin: 0.4rem 0 0;
+  color: #475569;
+}
+
+.refresh-button,
+.retry-button {
+  border: none;
+  border-radius: 8px;
+  background: #0f766e;
+  color: #fff;
+  cursor: pointer;
+  font-weight: 600;
+  padding: 0.55rem 0.9rem;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.8rem;
+  margin-bottom: 0.8rem;
+
+  @media (max-width: 900px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @media (max-width: 640px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.stat-card {
+  border-radius: 14px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  padding: 0.9rem;
+  display: grid;
+  gap: 0.2rem;
+
+  strong {
+    font-size: 1.45rem;
+    color: #0f172a;
+  }
+
+  small {
+    color: #334155;
+  }
+
+  &.red {
+    background: linear-gradient(135deg, #fef2f2, #fee2e2);
+  }
+
+  &.orange {
+    background: linear-gradient(135deg, #fff7ed, #ffedd5);
+  }
+
+  &.gold {
+    background: linear-gradient(135deg, #fefce8, #fef3c7);
+  }
+
+  &.green {
+    background: linear-gradient(135deg, #ecfdf5, #d1fae5);
+  }
+}
+
+.stat-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.11em;
+  color: #475569;
+}
+
+.refresh-copy {
+  color: #475569;
+  margin: 0 0 1rem;
+}
+
+.state-message {
+  padding: 1.2rem;
+  color: #475569;
+}
+
+.state-card {
+  border-radius: 12px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  padding: 1rem;
+  display: grid;
+  gap: 0.6rem;
+
+  &.error {
+    background: #fef2f2;
+    border-color: #fecaca;
+  }
+
+  &.empty {
+    background: #f8fafc;
+  }
+}
+
+.incident-list {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.incident-card {
+  border: 1px solid rgba(15, 23, 42, 0.09);
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+  padding: 1rem;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.incident-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.9rem;
+
+  h3 {
+    margin: 0;
+    font-size: 1.05rem;
+
+    a {
+      color: #0f172a;
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+  }
+}
+
+.issue-url {
+  margin: 0.3rem 0 0;
+  color: #64748b;
+  font-size: 0.78rem;
+  word-break: break-all;
+}
+
+.badges {
+  display: flex;
+  gap: 0.45rem;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.severity-pill,
+.status-pill,
+.impact-pill {
+  border-radius: 999px;
+  padding: 0.18rem 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.severity-pill.sev1 {
+  background: #7f1d1d;
+  color: #fff;
+}
+
+.severity-pill.sev2 {
+  background: #b91c1c;
+  color: #fff;
+}
+
+.severity-pill.sev3 {
+  background: #d97706;
+  color: #fff;
+}
+
+.severity-pill.sev4 {
+  background: #15803d;
+  color: #fff;
+}
+
+.severity-pill.unknown {
+  background: #334155;
+  color: #fff;
+}
+
+.status-pill.open {
+  background: #7f1d1d;
+  color: #fff;
+}
+
+.status-pill.acknowledged {
+  background: #1d4ed8;
+  color: #fff;
+}
+
+.status-pill.mitigating {
+  background: #0f766e;
+  color: #fff;
+}
+
+.status-pill.resolved {
+  background: #15803d;
+  color: #fff;
+}
+
+.impact-pill {
+  background: #581c87;
+  color: #fff;
+}
+
+.incident-meta,
+.reference-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+
+  @media (max-width: 900px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @media (max-width: 640px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.reference-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+
+  a {
+    color: #0369a1;
+    word-break: break-all;
+  }
+}
+
+.meta-label {
+  display: block;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.68rem;
+  color: #64748b;
+  margin-bottom: 0.2rem;
+}
+
+.incident-body {
+  margin: 0;
+  white-space: pre-wrap;
+  color: #334155;
+}
+
+.muted {
+  color: #94a3b8;
+}
+
+.secondary.link {
+  color: #0369a1;
+  font-weight: 600;
+}

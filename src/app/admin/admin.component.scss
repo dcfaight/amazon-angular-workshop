@@ -24,6 +24,12 @@
   }
 }
 
+.admin-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -339,6 +345,24 @@ table {
 
   &:hover:not(:disabled) { background: #0052a3; }
   &:disabled { opacity: 0.5; cursor: default; }
+}
+
+.btn-incidents {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  background: #0f766e;
+  color: #fff;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+
+  &:hover {
+    background: #115e59;
+  }
 }
 
 .btn-save {

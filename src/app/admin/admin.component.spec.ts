@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
+import { provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { AdminComponent } from './admin.component';
 import { AdminService } from '../services/admin.service';
@@ -39,6 +40,7 @@ describe('AdminComponent', () => {
     await TestBed.configureTestingModule({
       imports: [AdminComponent, CommonModule, ReactiveFormsModule],
       providers: [
+        provideRouter([]),
         { provide: AdminService, useValue: adminService },
         { provide: ToastService, useValue: toastService }
       ]
