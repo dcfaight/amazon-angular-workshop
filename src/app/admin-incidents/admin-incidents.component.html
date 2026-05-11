@@ -139,6 +139,12 @@
       <p class="incident-body" *ngIf="incident.body">{{ incident.body }}</p>
 
       <div class="reference-grid">
+              <button type="button" class="timeline-toggle" (click)="toggleTimeline(incident.id)">
+                {{ expandedIncident === incident.id ? 'Hide Timeline' : 'View Timeline' }}
+              </button>
+              <section *ngIf="expandedIncident === incident.id" class="timeline-section">
+                <app-incident-timeline [issueNumber]="incident.number"></app-incident-timeline>
+              </section>
         <div>
           <span class="meta-label">Linked PR</span>
           <a

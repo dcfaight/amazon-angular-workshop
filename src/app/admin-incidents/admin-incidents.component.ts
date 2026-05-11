@@ -6,13 +6,14 @@ import { takeUntil } from 'rxjs/operators';
 import { IncidentItem } from '../models/incident';
 import { IncidentService } from '../services/incident.service';
 import { ToastService } from '../services/toast.service';
+import { IncidentTimelineComponent } from './incident-timeline.component';
 
 type IncidentQueueFilter = 'all' | 'open' | 'critical' | 'customer-impact';
 
 @Component({
   selector: 'app-admin-incidents',
   standalone: true,
-  imports: [CommonModule, RouterLink, DatePipe],
+  imports: [CommonModule, RouterLink, DatePipe, IncidentTimelineComponent],
   templateUrl: './admin-incidents.component.html',
   styleUrl: './admin-incidents.component.scss',
 })
@@ -24,11 +25,16 @@ export class AdminIncidentsComponent implements OnInit, OnDestroy {
   errorMessage: string | null = null;
   lastRefreshedAt: Date | null = null;
   activeFilter: IncidentQueueFilter = 'all';
+  expandedIncident: number | null = null;
 
   constructor(
     private incidentService: IncidentService,
     private toastService: ToastService
   ) {}
+
+  toggleTimeline(incidentId: number): void {
+    this.expandedIncident = this.expandedIncident === incidentId ? null : incidentId;
+  }
 
   ngOnInit(): void {
     this.loadIncidents();

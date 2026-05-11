@@ -1,0 +1,42 @@
+.timeline-root {
+  padding: 0.5rem 0 0.5rem 1.2rem;
+  border-left: 3px solid #cbd5e1;
+  margin: 0.5rem 0 1.2rem 0.5rem;
+}
+.timeline-loading,
+.timeline-error,
+.timeline-empty {
+  color: #64748b;
+  font-size: 0.95rem;
+  margin: 0.5rem 0;
+}
+.timeline-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.timeline-event,
+.timeline-comment {
+  margin-bottom: 0.7rem;
+  padding-bottom: 0.7rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+.event-date {
+  color: #64748b;
+  font-size: 0.82rem;
+  margin-right: 0.5rem;
+}
+.event-type {
+  font-weight: 600;
+  margin-right: 0.5rem;
+  color: #0f766e;
+}
+.comment-body {
+  margin: 0.3rem 0 0 0;
+  background: #f1f5f9;
+  border-radius: 6px;
+  padding: 0.5rem;
+  font-size: 0.98rem;
+  color: #334155;
+  white-space: pre-wrap;
+}

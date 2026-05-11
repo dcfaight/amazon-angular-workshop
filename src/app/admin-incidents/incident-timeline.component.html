@@ -1,0 +1,30 @@
+<div class="timeline-root">
+  <ng-container *ngIf="loading">
+    <p class="timeline-loading">Loading timeline...</p>
+  </ng-container>
+  <ng-container *ngIf="error && !loading">
+    <p class="timeline-error">{{ error }}</p>
+  </ng-container>
+  <ng-container *ngIf="!loading && !error">
+    <div *ngIf="!events.length && !comments.length" class="timeline-empty">
+      <p>No timeline events found for this incident.</p>
+    </div>
+    <ul *ngIf="events.length || comments.length" class="timeline-list">
+      <li *ngFor="let event of events" class="timeline-event">
+        <span class="event-date">{{ event.created_at | date: 'short' }}</span>
+        <span class="event-type">{{ event.event }}</span>
+        <span *ngIf="event.actor">by <a [href]="event.actor.html_url" target="_blank">{{ event.actor.login }}</a></span>
+        <span *ngIf="event.label">label: <strong>{{ event.label.name }}</strong></span>
+        <span *ngIf="event.assignee">assignee: <strong>{{ event.assignee.login }}</strong></span>
+        <span *ngIf="event.commit_id">commit: <code>{{ event.commit_id | slice:0:7 }}</code></span>
+        <span *ngIf="event.rename">renamed: {{ event.rename.from }} → {{ event.rename.to }}</span>
+      </li>
+      <li *ngFor="let comment of comments" class="timeline-comment">
+        <span class="event-date">{{ comment.created_at | date: 'short' }}</span>
+        <span class="event-type">comment</span>
+        <span>by <a [href]="comment.user.html_url" target="_blank">{{ comment.user.login }}</a></span>
+        <div class="comment-body">{{ comment.body }}</div>
+      </li>
+    </ul>
+  </ng-container>
+</div>

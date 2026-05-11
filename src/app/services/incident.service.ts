@@ -9,6 +9,29 @@ import {
   IncidentWorkflowStatus,
 } from '../models/incident';
 
+// Types for GitHub events and comments
+interface GithubIssueEvent {
+  id: number;
+  event: string;
+  actor?: { login: string; avatar_url: string; html_url: string };
+  created_at: string;
+  label?: { name: string };
+  assignee?: { login: string };
+  assigner?: { login: string };
+  commit_id?: string;
+  rename?: { from: string; to: string };
+  // ...other fields as needed
+}
+
+interface GithubIssueComment {
+  id: number;
+  user: { login: string; avatar_url: string; html_url: string };
+  body: string;
+  created_at: string;
+  updated_at: string;
+  html_url: string;
+}
+
 interface GithubIssueLabel {
   name?: string;
 }
@@ -34,6 +57,21 @@ export class IncidentService {
   private readonly issuesUrl = `https://api.github.com/repos/${this.owner}/${this.repo}/issues`;
 
   constructor(private http: HttpClient) {}
+  /**
+   * Fetches all timeline events for a given incident (issue number).
+   */
+  getIncidentEvents(issueNumber: number): Observable<GithubIssueEvent[]> {
+    const url = `https://api.github.com/repos/${this.owner}/${this.repo}/issues/${issueNumber}/events`;
+    return this.http.get<GithubIssueEvent[]>(url);
+  }
+
+  /**
+   * Fetches all comments for a given incident (issue number).
+   */
+  getIncidentComments(issueNumber: number): Observable<GithubIssueComment[]> {
+    const url = `https://api.github.com/repos/${this.owner}/${this.repo}/issues/${issueNumber}/comments`;
+    return this.http.get<GithubIssueComment[]>(url);
+  }
 
   getIncidents(): Observable<IncidentItem[]> {
     return this.http
