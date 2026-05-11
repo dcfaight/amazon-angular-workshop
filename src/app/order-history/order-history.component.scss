@@ -280,8 +280,8 @@
   text-transform: capitalize;
 }
 
-.status-pill.placed,
-.status-pill.processing {
+.status-pill.pending,
+.status-pill.confirmed {
   background: #dbeafe;
   color: #1d4ed8;
 }
@@ -291,9 +291,21 @@
   color: #15803d;
 }
 
-.status-pill.delivered {
-  background: #ede9fe;
-  color: #6d28d9;
+.advance-button {
+  margin-top: 0.7rem;
+  border: 0;
+  border-radius: 999px;
+  background: #111827;
+  color: #f9fafb;
+  padding: 0.5rem 0.85rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.advance-button[disabled] {
+  opacity: 0.55;
+  cursor: wait;
 }
 
 @media (max-width: 900px) {

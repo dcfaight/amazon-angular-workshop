@@ -208,7 +208,7 @@ export class CheckoutComponent implements OnDestroy {
       userName: user.name,
       tenantId: user.tenantId,
       createdAt: confirmation.placedAtIso,
-      status: 'placed',
+      status: 'pending',
       subtotal: this.subtotal,
       total: this.subtotal,
       totalItems: this.cartItems.length,

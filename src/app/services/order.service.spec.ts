@@ -26,7 +26,7 @@ describe('OrderService', () => {
       userName: 'Alex Smith',
       tenantId: 'north-america',
       createdAt: '2026-05-10T10:00:00.000Z',
-      status: 'placed',
+      status: 'pending',
       subtotal: 99.99,
       total: 99.99,
       totalItems: 1,
@@ -55,7 +55,7 @@ describe('OrderService', () => {
       userName: 'Alex Smith',
       tenantId: 'north-america',
       createdAt: '2026-05-09T10:00:00.000Z',
-      status: 'placed',
+      status: 'pending',
       subtotal: 49.99,
       total: 49.99,
       totalItems: 1,
@@ -108,9 +108,9 @@ describe('OrderService', () => {
     service.getOrdersForCurrentUser().subscribe((orders) => {
       expect(orders.length).toBe(3);
       expect(orders.every((order) => order.isSeeded)).toBeTrue();
-      expect(orders.some((order) => order.status === 'processing')).toBeTrue();
+      expect(orders.some((order) => order.status === 'confirmed')).toBeTrue();
       expect(orders.some((order) => order.status === 'shipped')).toBeTrue();
-      expect(orders.some((order) => order.status === 'delivered')).toBeTrue();
+      expect(orders.some((order) => order.status === 'pending')).toBeTrue();
     });
 
     const req = httpMock.expectOne('http://192.168.1.5:3000/orders?userId=1');
@@ -125,7 +125,7 @@ describe('OrderService', () => {
       expect(orders[0].id).toContain('legacy-1-');
       expect(orders[0].userName).toBe('Alex Smith');
       expect(orders[0].tenantId).toBe('north-america');
-      expect(orders[0].status).toBe('placed');
+      expect(orders[0].status).toBe('pending');
       expect(orders[0].paymentMethod).toBe('card');
       expect(orders[0].shippingAddress.addressLine1).toContain('legacy order');
       expect(orders[0].totalItems).toBe(0);
@@ -200,7 +200,7 @@ describe('OrderService', () => {
           userName: 'Alex Smith',
           tenantId: 'north-america',
           createdAt: '2026-05-10T12:00:00.000Z',
-          status: 'processing',
+          status: 'confirmed',
           subtotal: 10,
           total: 10,
           totalItems: 1,
@@ -277,7 +277,7 @@ describe('OrderService', () => {
           userName: 'Alex Smith',
           tenantId: 'north-america',
           createdAt: '2026-05-10T12:30:00.000Z',
-          status: 'placed',
+          status: 'pending',
           subtotal: 1,
           total: 1,
           totalItems: 1,
@@ -386,5 +386,44 @@ describe('OrderService', () => {
     expect(saved).toHaveSize(1);
     expect(saved[0].id).toBe(3);
     expect(saved[0].orderNumber).toBe('ORD-100');
+  });
+
+  it('should advance an order status and persist the update locally', () => {
+    service.advanceOrderStatus(mockOrders[0]).subscribe((order) => {
+      expect(order.status).toBe('confirmed');
+    });
+
+    const req = httpMock.expectOne('http://192.168.1.5:3000/orders/1');
+    expect(req.request.method).toBe('PATCH');
+    expect(req.request.body).toEqual({ status: 'confirmed' });
+    req.flush({ ...mockOrders[0], status: 'confirmed' });
+
+    const saved = JSON.parse(localStorage.getItem('orders:1') || '[]') as Order[];
+    expect(saved[0].status).toBe('confirmed');
+  });
+
+  it('should fall back to a local status update when advancing an order fails', () => {
+    service.advanceOrderStatus(mockOrders[0]).subscribe((order) => {
+      expect(order.status).toBe('confirmed');
+    });
+
+    const req = httpMock.expectOne('http://192.168.1.5:3000/orders/1');
+    req.error(new ProgressEvent('Network error'));
+
+    const saved = JSON.parse(localStorage.getItem('orders:1') || '[]') as Order[];
+    expect(saved[0].status).toBe('confirmed');
+  });
+
+  it('should map legacy placed, processing, and delivered statuses to the new lifecycle', () => {
+    service.getOrdersForCurrentUser().subscribe((orders) => {
+      expect(orders.map((order) => order.status)).toEqual(['pending', 'confirmed', 'shipped']);
+    });
+
+    const req = httpMock.expectOne('http://192.168.1.5:3000/orders?userId=1');
+    req.flush([
+      { ...mockOrders[0], id: 11, orderNumber: 'ORD-011', status: 'placed' },
+      { ...mockOrders[0], id: 12, orderNumber: 'ORD-012', status: 'processing' },
+      { ...mockOrders[0], id: 13, orderNumber: 'ORD-013', status: 'delivered' },
+    ]);
   });
 });

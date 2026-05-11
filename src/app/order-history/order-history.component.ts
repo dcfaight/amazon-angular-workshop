@@ -3,7 +3,7 @@ import { Component, OnDestroy, OnInit } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
-import { Order } from '../models/order';
+import { Order, getNextOrderStatus } from '../models/order';
 import { OrderService } from '../services/order.service';
 import { ToastService } from '../services/toast.service';
 
@@ -16,11 +16,12 @@ import { ToastService } from '../services/toast.service';
 })
 export class OrderHistoryComponent implements OnInit, OnDestroy {
   private readonly destroy$ = new Subject<void>();
-  readonly statusSteps: Order['status'][] = ['placed', 'processing', 'shipped', 'delivered'];
+  readonly statusSteps: Order['status'][] = ['pending', 'confirmed', 'shipped'];
 
   orders: Order[] = [];
   loading = true;
   errorMessage: string | null = null;
+  updatingOrderId: string | number | null = null;
 
   constructor(
     private orderService: OrderService,
@@ -83,6 +84,38 @@ export class OrderHistoryComponent implements OnInit, OnDestroy {
 
   getPaymentLabel(order: Order): string {
     return order.paymentMethod ? order.paymentMethod.toUpperCase() : 'N/A';
+  }
+
+  canAdvanceStatus(order: Order): boolean {
+    return getNextOrderStatus(order.status) !== null;
+  }
+
+  getNextStatusLabel(order: Order): string {
+    return getNextOrderStatus(order.status) ?? order.status;
+  }
+
+  advanceStatus(order: Order): void {
+    if (!this.canAdvanceStatus(order) || this.updatingOrderId === order.id) {
+      return;
+    }
+
+    this.updatingOrderId = order.id;
+
+    this.orderService.advanceOrderStatus(order)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (updatedOrder) => {
+          this.orders = this.orders.map((existingOrder) =>
+            existingOrder.id === updatedOrder.id ? updatedOrder : existingOrder
+          );
+          this.toastService.show(`Order ${this.getOrderNumber(updatedOrder)} marked ${updatedOrder.status}.`);
+          this.updatingOrderId = null;
+        },
+        error: () => {
+          this.toastService.show('Unable to update order status right now.');
+          this.updatingOrderId = null;
+        },
+      });
   }
 
   getStatusIndex(order: Order): number {

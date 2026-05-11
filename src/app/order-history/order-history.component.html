@@ -51,6 +51,15 @@
             <span [class]="getStatusClass(order)">{{ order.status }}</span>
             <span *ngIf="order.isSeeded" class="seed-pill">Demo</span>
           </div>
+          <button
+            *ngIf="canAdvanceStatus(order)"
+            type="button"
+            class="advance-button"
+            [disabled]="updatingOrderId === order.id"
+            (click)="advanceStatus(order)"
+          >
+            Mark {{ getNextStatusLabel(order) }}
+          </button>
         </div>
       </div>
 

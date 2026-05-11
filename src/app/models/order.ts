@@ -1,5 +1,18 @@
 import { ShippingDetails, PaymentDetails } from './checkout';
 
+export const ORDER_STATUSES = ['pending', 'confirmed', 'shipped'] as const;
+
+export type OrderStatus = (typeof ORDER_STATUSES)[number];
+
+export function getNextOrderStatus(status: OrderStatus): OrderStatus | null {
+  const currentIndex = ORDER_STATUSES.indexOf(status);
+  if (currentIndex < 0 || currentIndex === ORDER_STATUSES.length - 1) {
+    return null;
+  }
+
+  return ORDER_STATUSES[currentIndex + 1];
+}
+
 export interface OrderItem {
   productId: number;
   title: string;
@@ -15,7 +28,7 @@ export interface Order {
   userName: string;
   tenantId: string;
   createdAt: string;
-  status: 'placed' | 'processing' | 'shipped' | 'delivered';
+  status: OrderStatus;
   subtotal: number;
   total: number;
   totalItems: number;

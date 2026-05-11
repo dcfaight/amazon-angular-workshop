@@ -4,7 +4,7 @@ import { Inject, PLATFORM_ID } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { catchError, map, tap } from 'rxjs/operators';
-import { Order, NewOrder } from '../models/order';
+import { Order, NewOrder, OrderStatus, getNextOrderStatus } from '../models/order';
 import { AuthService } from './auth.service';
 import { User } from '../models/user';
 
@@ -17,8 +17,11 @@ interface LegacyOrderItem {
   imageUrl?: string;
 }
 
-type LegacyOrderRecord = Omit<Partial<Order>, 'items'> & {
+type LegacyOrderStatus = OrderStatus | 'placed' | 'processing' | 'delivered';
+
+type LegacyOrderRecord = Omit<Partial<Order>, 'items' | 'status'> & {
   items?: LegacyOrderItem[];
+  status?: LegacyOrderStatus;
 };
 
 @Injectable({ providedIn: 'root' })
@@ -63,6 +66,27 @@ export class OrderService {
     );
   }
 
+  advanceOrderStatus(order: Order): Observable<Order> {
+    const nextStatus = getNextOrderStatus(order.status);
+    if (!nextStatus) {
+      return of(order);
+    }
+
+    const updatedOrder: Order = {
+      ...order,
+      status: nextStatus,
+    };
+
+    return this.http.patch<Order>(`${this.apiUrl}/${order.id}`, { status: nextStatus }).pipe(
+      map((savedOrder) => this.normalizeOrder({ ...order, ...savedOrder }, this.resolveUser(order))),
+      tap((savedOrder) => this.saveLocalOrder(savedOrder)),
+      catchError(() => {
+        this.saveLocalOrder(updatedOrder);
+        return of(updatedOrder);
+      })
+    );
+  }
+
   private normalizeOrders(rawOrders: LegacyOrderRecord[], user: User): Order[] {
     if (!rawOrders.length) {
       return this.buildSeedOrders(user);
@@ -99,7 +123,7 @@ export class OrderService {
       userName: rawOrder.userName ?? user.name,
       tenantId: rawOrder.tenantId ?? user.tenantId,
       createdAt: rawOrder.createdAt ?? new Date().toISOString(),
-      status: rawOrder.status ?? 'placed',
+      status: this.normalizeStatus(rawOrder.status),
       subtotal,
       total: rawOrder.total ?? subtotal,
       totalItems,
@@ -198,6 +222,35 @@ export class OrderService {
     return `${this.localStoragePrefix}:${userId}`;
   }
 
+  private normalizeStatus(status: LegacyOrderRecord['status']): OrderStatus {
+    switch (status) {
+      case 'confirmed':
+      case 'processing':
+        return 'confirmed';
+      case 'shipped':
+      case 'delivered':
+        return 'shipped';
+      case 'pending':
+      case 'placed':
+      default:
+        return 'pending';
+    }
+  }
+
+  private resolveUser(order: Pick<Order, 'userId' | 'userName' | 'tenantId'>): User {
+    const currentUser = this.authService.currentUserValue;
+    if (currentUser && currentUser.id === order.userId) {
+      return currentUser;
+    }
+
+    return {
+      id: order.userId,
+      name: order.userName,
+      tenantId: order.tenantId,
+      roles: [],
+    };
+  }
+
   private buildSeedOrders(user: User): Order[] {
     const baseAddress = {
       fullName: user.name,
@@ -215,7 +268,7 @@ export class OrderService {
         userName: user.name,
         tenantId: user.tenantId,
         createdAt: new Date(Date.now() - 1000 * 60 * 60 * 20).toISOString(),
-        status: 'processing',
+        status: 'confirmed',
         subtotal: 239.98,
         total: 239.98,
         totalItems: 2,
@@ -270,7 +323,7 @@ export class OrderService {
         userName: user.name,
         tenantId: user.tenantId,
         createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 12).toISOString(),
-        status: 'delivered',
+        status: 'pending',
         subtotal: 24.99,
         total: 24.99,
         totalItems: 1,

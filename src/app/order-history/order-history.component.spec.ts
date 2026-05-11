@@ -20,7 +20,7 @@ describe('OrderHistoryComponent', () => {
       userName: 'Alex Smith',
       tenantId: 'north-america',
       createdAt: '2026-05-10T10:00:00.000Z',
-      status: 'placed',
+      status: 'pending',
       subtotal: 129.99,
       total: 129.99,
       totalItems: 1,
@@ -45,9 +45,10 @@ describe('OrderHistoryComponent', () => {
   ];
 
   beforeEach(async () => {
-    orderService = jasmine.createSpyObj<OrderService>('OrderService', ['getOrdersForCurrentUser']);
+    orderService = jasmine.createSpyObj<OrderService>('OrderService', ['getOrdersForCurrentUser', 'advanceOrderStatus']);
     toastService = jasmine.createSpyObj<ToastService>('ToastService', ['show']);
     orderService.getOrdersForCurrentUser.and.returnValue(of(mockOrders));
+    orderService.advanceOrderStatus.and.returnValue(of({ ...mockOrders[0], status: 'confirmed' }));
 
     await TestBed.configureTestingModule({
       imports: [OrderHistoryComponent],
@@ -95,16 +96,33 @@ describe('OrderHistoryComponent', () => {
   });
 
   it('should return a class name for order status', () => {
-    expect(component.getStatusClass(mockOrders[0])).toBe('status-pill placed');
+    expect(component.getStatusClass(mockOrders[0])).toBe('status-pill pending');
   });
 
   it('should mark reached status steps correctly', () => {
     const shippedOrder = { ...mockOrders[0], status: 'shipped' as const };
 
-    expect(component.isStepReached(shippedOrder, 'placed')).toBeTrue();
-    expect(component.isStepReached(shippedOrder, 'processing')).toBeTrue();
+    expect(component.isStepReached(shippedOrder, 'pending')).toBeTrue();
+    expect(component.isStepReached(shippedOrder, 'confirmed')).toBeTrue();
     expect(component.isStepReached(shippedOrder, 'shipped')).toBeTrue();
-    expect(component.isStepReached(shippedOrder, 'delivered')).toBeFalse();
+  });
+
+  it('should expose the next status label and allow advancing status', () => {
+    expect(component.canAdvanceStatus(mockOrders[0])).toBeTrue();
+    expect(component.getNextStatusLabel(mockOrders[0])).toBe('confirmed');
+
+    component.advanceStatus(mockOrders[0]);
+
+    expect(orderService.advanceOrderStatus).toHaveBeenCalledWith(mockOrders[0]);
+    expect(component.orders[0].status).toBe('confirmed');
+    expect(toastService.show).toHaveBeenCalledWith('Order ORD-123 marked confirmed.');
+  });
+
+  it('should not allow advancing a shipped order', () => {
+    const shippedOrder = { ...mockOrders[0], status: 'shipped' as const };
+
+    expect(component.canAdvanceStatus(shippedOrder)).toBeFalse();
+    expect(component.getNextStatusLabel(shippedOrder)).toBe('shipped');
   });
 
   it('should track orders by id', () => {
@@ -119,7 +137,7 @@ describe('OrderHistoryComponent', () => {
       userName: 'Alex Smith',
       tenantId: 'north-america',
       createdAt: '2026-05-10T10:00:00.000Z',
-      status: 'placed',
+      status: 'pending',
       subtotal: 0,
       total: 0,
       totalItems: 0,
