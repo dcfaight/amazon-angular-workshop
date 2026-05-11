@@ -585,4 +585,35 @@ describe('CheckoutComponent', () => {
     await placeOrderPromise;
     expect(component.isSubmitting).toBeFalsy();
   });
+
+  it('should update applied promotion amount when cart subtotal changes', () => {
+    component.promotionCode = 'SAVE10';
+    component.applyPromotion();
+    expect(component.discountAmount).toBe(10);
+
+    // Add a second $100 item so subtotal becomes $200 — triggers revalidatePromotion
+    cartItems$.next([mockProduct, { ...mockProduct, id: 2, price: 100 }]);
+
+    // SAVE10 returns 10% of new subtotal (200)
+    expect(component.appliedPromotion).not.toBeNull();
+    expect(component.discountAmount).toBe(20);
+  });
+
+  it('should remove applied promotion when cart change makes it invalid', () => {
+    component.promotionCode = 'SAVE10';
+    component.applyPromotion();
+    expect(component.appliedPromotion).not.toBeNull();
+
+    // Override to return invalid for the revalidation call
+    promotionService.evaluatePromotion.and.returnValue({
+      valid: false,
+      message: 'Promo no longer applicable.',
+    });
+
+    // Trigger revalidatePromotion via cart update
+    cartItems$.next([]);
+
+    expect(component.appliedPromotion).toBeNull();
+    expect(component.promotionMessage).toBe('Promotion removed because cart subtotal changed.');
+  });
 });

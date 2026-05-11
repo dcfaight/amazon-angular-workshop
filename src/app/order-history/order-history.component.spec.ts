@@ -129,6 +129,23 @@ describe('OrderHistoryComponent', () => {
     expect(component.trackByOrderId(0, mockOrders[0])).toBe(1);
   });
 
+  it('should not re-submit an order that is already being updated', () => {
+    component.updatingOrderId = mockOrders[0].id;
+
+    component.advanceStatus(mockOrders[0]);
+
+    expect(orderService.advanceOrderStatus).not.toHaveBeenCalled();
+  });
+
+  it('should handle errors when advancing order status', () => {
+    orderService.advanceOrderStatus.and.returnValue(throwError(() => new Error('Update failed')));
+
+    component.advanceStatus(mockOrders[0]);
+
+    expect(toastService.show).toHaveBeenCalledWith('Unable to update order status right now.');
+    expect(component.updatingOrderId).toBeNull();
+  });
+
   it('should render legacy order fallbacks for missing receipt fields', () => {
     const legacyOrder: Order = {
       id: 'legacy-1',
