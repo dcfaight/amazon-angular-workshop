@@ -29,7 +29,82 @@ jobs:
 
       - name: Enforce coverage threshold
         run: |
-          node -e "const fs=require('fs');const html=fs.readFileSync('coverage/amazon-angular-workshop/index.html','utf8');const min=Number(process.env.COVERAGE_MIN||95);const find=(label)=>{const re=new RegExp('<span class=\\\"strong\\\">\\\\s*([0-9]+(?:\\\\.[0-9]+)?)%\\\\s*</span>\\\\s*<span class=\\\"quiet\\\">'+label+'</span>');const m=html.match(re);if(!m) throw new Error('Missing coverage metric: '+label);return Number(m[1]);};const metrics={Statements:find('Statements'),Branches:find('Branches'),Functions:find('Functions'),Lines:find('Lines')};console.log('Coverage metrics:',metrics);const failed=Object.entries(metrics).filter(([,v])=>v<min);if(failed.length){console.error('Coverage threshold check failed. Minimum: '+min+'%');for(const [k,v] of failed){console.error(k+': '+v+'%');}process.exit(1);}"
+          node <<'NODE'
+          const fs = require('fs');
+
+          const html = fs.readFileSync('coverage/amazon-angular-workshop/index.html', 'utf8');
+          const min = Number(process.env.COVERAGE_MIN || 95);
+          const find = (label) => {
+            const re = new RegExp('<span class=\\"strong\\">\\s*([0-9]+(?:\\.[0-9]+)?)%\\s*</span>\\s*<span class=\\"quiet\\">' + label + '</span>');
+            const match = html.match(re);
+            if (!match) {
+              throw new Error('Missing coverage metric: ' + label);
+            }
+            return Number(match[1]);
+          };
+
+          const metrics = {
+            Statements: find('Statements'),
+            Branches: find('Branches'),
+            Functions: find('Functions'),
+            Lines: find('Lines')
+          };
+          const failed = Object.entries(metrics).filter(([, value]) => value < min);
+          const summary = {
+            minimum: min,
+            metrics,
+            passed: failed.length === 0,
+            failed
+          };
+
+          fs.writeFileSync('coverage/amazon-angular-workshop/coverage-summary.json', JSON.stringify(summary, null, 2));
+          console.log('Coverage metrics:', metrics);
+
+          if (failed.length) {
+            console.error('Coverage threshold check failed. Minimum: ' + min + '%');
+            for (const [name, value] of failed) {
+              console.error(name + ': ' + value + '%');
+            }
+            process.exit(1);
+          }
+          NODE
+
+      - name: Write coverage summary
+        if: always()
+        env:
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+
+          const path = 'coverage/amazon-angular-workshop/coverage-summary.json';
+          const summary = fs.existsSync(path)
+            ? JSON.parse(fs.readFileSync(path, 'utf8'))
+            : {
+                minimum: Number(process.env.COVERAGE_MIN || 95),
+                metrics: { Statements: 0, Branches: 0, Functions: 0, Lines: 0 },
+                passed: false
+              };
+
+          const lines = [];
+          lines.push('## Coverage');
+          lines.push('');
+          lines.push('Threshold: **' + summary.minimum + '%**');
+          lines.push('Status: **' + (summary.passed ? 'PASS' : 'FAIL') + '**');
+          lines.push('');
+          lines.push('| Metric | Value | Result |');
+          lines.push('|---|---:|---|');
+
+          for (const [name, value] of Object.entries(summary.metrics)) {
+            lines.push('| ' + name + ' | ' + value + '% | ' + (value >= summary.minimum ? 'PASS' : 'FAIL') + ' |');
+          }
+
+          lines.push('');
+          lines.push('Coverage artifact: **coverage-report** (Artifacts section on run page)');
+          lines.push('Run details: ' + process.env.RUN_URL);
+
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, lines.join('\n') + '\n');
+          NODE
 
       - name: Upload coverage artifact
         if: always()
