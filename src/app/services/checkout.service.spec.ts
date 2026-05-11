@@ -1,27 +1,28 @@
 import { TestBed } from '@angular/core/testing';
-import { HttpErrorResponse } from '@angular/common/http';
-import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { CheckoutService } from './checkout.service';
+import { ReservationService } from './reservation.service';
 import { AppStateService } from './app-state.service';
-import { CheckoutError, CheckoutRequest } from '../models/checkout';
-import { of, throwError } from 'rxjs';
+import { CheckoutRequest, CheckoutError } from '../models/checkout';
+import { Product } from '../models/product';
 
 describe('CheckoutService', () => {
   let service: CheckoutService;
+  let reservationService: jasmine.SpyObj<ReservationService>;
   let appState: jasmine.SpyObj<AppStateService>;
-  let httpMock: HttpTestingController;
+
+  const mockProduct = (id: number): Product => ({
+    id,
+    title: `Product ${id}`,
+    description: `Description for Product ${id}`,
+    price: 29.99,
+    imageUrl: `http://image.test/product${id}.jpg`,
+    stockCount: 10,
+    inStock: true,
+    tenantId: 'tenant-a',
+  });
 
   const validRequest: CheckoutRequest = {
-    items: [
-      {
-        id: 1,
-        title: 'Test Product',
-        description: 'Test',
-        price: 29.99,
-        imageUrl: 'http://image.test',
-        inStock: true,
-      },
-    ],
+    items: [mockProduct(1)],
     total: 29.99,
     shipping: {
       fullName: 'Test User',
@@ -37,212 +38,299 @@ describe('CheckoutService', () => {
   };
 
   beforeEach(() => {
+    reservationService = jasmine.createSpyObj<ReservationService>(
+      'ReservationService',
+      ['validateAndReserve', 'confirmReservation', 'cancelReservation', 'getReservation']
+    );
+
     appState = jasmine.createSpyObj<AppStateService>('AppStateService', [], {
       simulateFailuresValue: false,
       simulatedCheckoutFailureModeValue: 'none',
     });
 
     TestBed.configureTestingModule({
-      imports: [HttpClientTestingModule],
-      providers: [CheckoutService, { provide: AppStateService, useValue: appState }],
+      providers: [
+        CheckoutService,
+        { provide: ReservationService, useValue: reservationService },
+        { provide: AppStateService, useValue: appState },
+      ],
     });
 
     service = TestBed.inject(CheckoutService);
-    httpMock = TestBed.inject(HttpTestingController);
     spyOn<any>(service, 'simulateNetworkLatency').and.resolveTo();
-  });
-
-  afterEach(() => {
-    httpMock.verify();
   });
 
   it('should be created', () => {
     expect(service).toBeTruthy();
   });
 
-  it('should throw for empty cart checkout attempts', async () => {
-    await expectAsync(
-      service.placeOrder({ ...validRequest, items: [] })
-    ).toBeRejectedWithError('Your cart is empty. Add items before checking out.');
+  describe('empty cart validation', () => {
+    it('should throw for empty cart checkout attempts', async () => {
+      await expectAsync(
+        service.placeOrder({ ...validRequest, items: [] })
+      ).toBeRejectedWithError('Your cart is empty. Add items before checking out.');
+    });
   });
 
-  it('should return confirmation for valid checkout requests', async () => {
-    const orderPromise = service.placeOrder(validRequest);
-    await Promise.resolve();
+  describe('successful checkout with reservation', () => {
+    it('should return confirmation when reservation is created and confirmed', async () => {
+      reservationService.validateAndReserve.and.resolveTo('RES-123-abc');
+      reservationService.confirmReservation.and.resolveTo();
 
-    const getReq = httpMock.expectOne('http://192.168.1.5:3000/products/1');
-    expect(getReq.request.method).toBe('GET');
-    getReq.flush({ ...validRequest.items[0], stockCount: 3, inStock: true });
-    await Promise.resolve();
-    await Promise.resolve();
+      const result = await service.placeOrder(validRequest);
 
-    const putReq = httpMock.expectOne(
-      (req) => req.url === 'http://192.168.1.5:3000/products/1' && req.method === 'PUT'
-    );
-    expect(putReq.request.body.stockCount).toBe(2);
-    expect(putReq.request.body.inStock).toBeTrue();
-    putReq.flush({ ...validRequest.items[0], stockCount: 2, inStock: true });
+      expect(result.orderId).toMatch(/^ORD-\d+$/);
+      expect(result.total).toBe(validRequest.total);
+      expect(result.itemCount).toBe(1);
+      expect(result.etaDays).toBe(3);
 
-    const result = await orderPromise;
-
-    expect(result.orderId).toContain('ORD-');
-    expect(result.total).toBe(validRequest.total);
-    expect(result.itemCount).toBe(1);
-    expect(result.etaDays).toBe(3);
-  });
-
-  it('should fail when deterministic checkout-unavailable mode is active', async () => {
-    Object.defineProperty(appState, 'simulateFailuresValue', {
-      configurable: true,
-      get: () => true,
+      expect(reservationService.validateAndReserve).toHaveBeenCalled();
+      expect(reservationService.confirmReservation).toHaveBeenCalledWith('RES-123-abc');
+      expect(reservationService.cancelReservation).not.toHaveBeenCalled();
     });
 
-    await expectAsync(service.placeOrder(validRequest)).toBeRejectedWith(
-      jasmine.objectContaining({
-        failure: jasmine.objectContaining({
-          reason: 'CHECKOUT_UNAVAILABLE',
-          message: 'Checkout is temporarily unavailable. Please try again.',
-        }),
-      }) as unknown as CheckoutError
-    );
+    it('should group multiple items of same product for reservation', async () => {
+      const multiRequest: CheckoutRequest = {
+        ...validRequest,
+        items: [mockProduct(1), mockProduct(1), mockProduct(2)],
+        total: 89.97,
+      };
+
+      reservationService.validateAndReserve.and.resolveTo('RES-123');
+      reservationService.confirmReservation.and.resolveTo();
+
+      await service.placeOrder(multiRequest);
+
+      const callArg = reservationService.validateAndReserve.calls.mostRecent().args[0];
+      expect(callArg).toEqual(
+        jasmine.arrayContaining([
+          jasmine.objectContaining({ productId: 1, quantity: 2 }),
+          jasmine.objectContaining({ productId: 2, quantity: 1 }),
+        ])
+      );
+    });
   });
 
-  it('should fail with insufficient stock when deterministic stock-changed mode is active', async () => {
-    Object.defineProperty(appState, 'simulatedCheckoutFailureModeValue', {
-      configurable: true,
-      get: () => 'stock-changed',
+  describe('deterministic failure modes', () => {
+    it('should fail with checkout-unavailable when mode is checkout-unavailable', async () => {
+      Object.defineProperty(appState, 'simulatedCheckoutFailureModeValue', {
+        configurable: true,
+        get: () => 'checkout-unavailable',
+      });
+
+      await expectAsync(service.placeOrder(validRequest)).toBeRejectedWith(
+        jasmine.objectContaining({
+          failure: jasmine.objectContaining({
+            reason: 'CHECKOUT_UNAVAILABLE',
+            message: 'Checkout is temporarily unavailable. Please try again.',
+          }),
+        }) as unknown as CheckoutError
+      );
+
+      expect(reservationService.validateAndReserve).not.toHaveBeenCalled();
     });
 
-    await expectAsync(service.placeOrder(validRequest)).toBeRejectedWith(
-      jasmine.objectContaining({
-        failure: jasmine.objectContaining({
-          reason: 'INSUFFICIENT_STOCK',
-          productId: 1,
-        }),
-      }) as unknown as CheckoutError
-    );
+    it('should fail with insufficient-stock when mode is stock-changed', async () => {
+      Object.defineProperty(appState, 'simulatedCheckoutFailureModeValue', {
+        configurable: true,
+        get: () => 'stock-changed',
+      });
+
+      await expectAsync(service.placeOrder(validRequest)).toBeRejectedWith(
+        jasmine.objectContaining({
+          failure: jasmine.objectContaining({
+            reason: 'INSUFFICIENT_STOCK',
+            message: jasmine.stringContaining('Stock changed'),
+          }),
+        }) as unknown as CheckoutError
+      );
+
+      expect(reservationService.validateAndReserve).not.toHaveBeenCalled();
+    });
+
+    it('should fail with checkout-unavailable when simulate failures is on and mode is none', async () => {
+      Object.defineProperty(appState, 'simulateFailuresValue', {
+        configurable: true,
+        get: () => true,
+      });
+      Object.defineProperty(appState, 'simulatedCheckoutFailureModeValue', {
+        configurable: true,
+        get: () => 'none',
+      });
+
+      await expectAsync(service.placeOrder(validRequest)).toBeRejectedWith(
+        jasmine.objectContaining({
+          failure: jasmine.objectContaining({
+            reason: 'CHECKOUT_UNAVAILABLE',
+          }),
+        }) as unknown as CheckoutError
+      );
+
+      expect(reservationService.validateAndReserve).not.toHaveBeenCalled();
+    });
   });
 
-  it('should fail with insufficient stock when server stock is lower than requested', async () => {
-    const request: CheckoutRequest = {
-      ...validRequest,
-      items: [{ ...validRequest.items[0] }, { ...validRequest.items[0] }],
-      total: 59.98,
-    };
+  describe('reservation failure handling', () => {
+    it('should cancel reservation when confirmation fails', async () => {
+      reservationService.validateAndReserve.and.resolveTo('RES-123');
+      reservationService.confirmReservation.and.rejectWith(
+        new Error('Stock changed')
+      );
 
-    const orderPromise = service.placeOrder(request);
-    await Promise.resolve();
-    const getReq = httpMock.expectOne('http://192.168.1.5:3000/products/1');
-    getReq.flush({ ...validRequest.items[0], stockCount: 1, inStock: true });
+      const error = new Error('Stock changed');
+      (error as any).reason = 'STOCK_CHANGED';
+      reservationService.confirmReservation.and.rejectWith(error);
 
-    await expectAsync(orderPromise).toBeRejectedWith(
-      jasmine.objectContaining({
-        failure: jasmine.objectContaining({
-          reason: 'INSUFFICIENT_STOCK',
-          requestedQuantity: 2,
-          availableQuantity: 1,
-        }),
-      }) as unknown as CheckoutError
-    );
+      try {
+        await service.placeOrder(validRequest);
+        fail('Should have thrown');
+      } catch (e) {
+        expect(e).toBeInstanceOf(CheckoutError);
+      }
+
+      expect(reservationService.cancelReservation).toHaveBeenCalledWith('RES-123');
+    });
+
+    it('should not cancel reservation when validation fails', async () => {
+      const validationError = new Error('Product not found');
+      (validationError as any).reason = 'PRODUCT_NOT_FOUND';
+
+      reservationService.validateAndReserve.and.rejectWith(validationError);
+
+      try {
+        await service.placeOrder(validRequest);
+        fail('Should have thrown');
+      } catch (e) {
+        expect(e).toBeInstanceOf(CheckoutError);
+      }
+
+      expect(reservationService.cancelReservation).not.toHaveBeenCalled();
+    });
+
+    it('should convert typed reservation errors to CheckoutError', async () => {
+      const reservationError = new Error('Insufficient stock');
+      (reservationError as any).reason = 'INSUFFICIENT_STOCK';
+      (reservationError as any).productId = 1;
+      (reservationError as any).requestedQuantity = 10;
+      (reservationError as any).availableQuantity = 5;
+
+      reservationService.validateAndReserve.and.rejectWith(reservationError);
+
+      try {
+        await service.placeOrder(validRequest);
+        fail('Should have thrown');
+      } catch (error) {
+        expect(error).toBeInstanceOf(CheckoutError);
+        const checkoutError = error as CheckoutError;
+        expect(checkoutError.failure.reason).toBe('INSUFFICIENT_STOCK');
+        expect(checkoutError.failure.productId).toBe(1);
+        expect(checkoutError.failure.requestedQuantity).toBe(10);
+        expect(checkoutError.failure.availableQuantity).toBe(5);
+      }
+    });
+
+    it('should convert untyped errors to CHECKOUT_UNAVAILABLE', async () => {
+      reservationService.validateAndReserve.and.rejectWith(
+        new Error('Unknown error')
+      );
+
+      try {
+        await service.placeOrder(validRequest);
+        fail('Should have thrown');
+      } catch (error) {
+        expect(error).toBeInstanceOf(CheckoutError);
+        const checkoutError = error as CheckoutError;
+        expect(checkoutError.failure.reason).toBe('CHECKOUT_UNAVAILABLE');
+        expect(checkoutError.failure.message).toBe('Unknown error');
+      }
+    });
+
+    it('should handle non-Error types thrown by reservation', async () => {
+      reservationService.validateAndReserve.and.rejectWith('string error');
+
+      try {
+        await service.placeOrder(validRequest);
+        fail('Should have thrown');
+      } catch (error) {
+        expect(error).toBeInstanceOf(CheckoutError);
+        const checkoutError = error as CheckoutError;
+        expect(checkoutError.failure.reason).toBe('CHECKOUT_UNAVAILABLE');
+      }
+    });
   });
 
-  it('should fail with product not found when product no longer exists', async () => {
-    const orderPromise = service.placeOrder(validRequest);
-    await Promise.resolve();
-    const getReq = httpMock.expectOne('http://192.168.1.5:3000/products/1');
-    getReq.flush('Not found', { status: 404, statusText: 'Not Found' });
+  describe('checkout line grouping', () => {
+    it('should correctly group items with multiple quantities', async () => {
+      const multiItemRequest: CheckoutRequest = {
+        ...validRequest,
+        items: [
+          mockProduct(1),
+          mockProduct(2),
+          mockProduct(1),
+          mockProduct(3),
+          mockProduct(2),
+          mockProduct(1),
+        ],
+        total: 179.94,
+      };
 
-    await expectAsync(orderPromise).toBeRejectedWith(
-      jasmine.objectContaining({
-        failure: jasmine.objectContaining({
-          reason: 'PRODUCT_NOT_FOUND',
-          productId: 1,
-        }),
-      }) as unknown as CheckoutError
-    );
+      reservationService.validateAndReserve.and.resolveTo('RES-123');
+      reservationService.confirmReservation.and.resolveTo();
+
+      await service.placeOrder(multiItemRequest);
+
+      const callArg = reservationService.validateAndReserve.calls.mostRecent().args[0];
+      expect(callArg).toEqual(
+        jasmine.arrayContaining([
+          jasmine.objectContaining({ productId: 1, quantity: 3 }),
+          jasmine.objectContaining({ productId: 2, quantity: 2 }),
+          jasmine.objectContaining({ productId: 3, quantity: 1 }),
+        ])
+      );
+      expect(callArg.length).toBe(3);
+    });
   });
 
-  it('should map undefined product responses to product-not-found checkout errors', async () => {
-    spyOn((service as any).http, 'get').and.returnValue(of(null));
+  describe('order confirmation details', () => {
+    it('should set correct item count in confirmation', async () => {
+      const multiItemRequest: CheckoutRequest = {
+        ...validRequest,
+        items: [mockProduct(1), mockProduct(2), mockProduct(1)],
+        total: 89.97,
+      };
 
-    await expectAsync((service as any).getProductById(1, 'Ghost Product', 1)).toBeRejectedWith(
-      jasmine.objectContaining({
-        failure: jasmine.objectContaining({
-          reason: 'PRODUCT_NOT_FOUND',
-          productId: 1,
-        }),
-      }) as unknown as CheckoutError
-    );
-  });
+      reservationService.validateAndReserve.and.resolveTo('RES-123');
+      reservationService.confirmReservation.and.resolveTo();
 
-  it('should map non-404 lookup errors to checkout-unavailable errors', async () => {
-    spyOn((service as any).http, 'get').and.returnValue(
-      throwError(() => new HttpErrorResponse({ status: 500, statusText: 'Server Error' }))
-    );
+      const result = await service.placeOrder(multiItemRequest);
 
-    await expectAsync((service as any).getProductById(1, 'Test Product', 1)).toBeRejectedWith(
-      jasmine.objectContaining({
-        failure: jasmine.objectContaining({
-          reason: 'CHECKOUT_UNAVAILABLE',
-          message: 'Unable to validate stock right now. Please try again.',
-        }),
-      }) as unknown as CheckoutError
-    );
-  });
+      expect(result.itemCount).toBe(3); // Total items, not grouped count
+    });
 
-  it('should map stock update failures to checkout-unavailable errors', async () => {
-    spyOn((service as any).http, 'put').and.returnValue(
-      throwError(() => new Error('put failed'))
-    );
+    it('should set placed timestamp in ISO format', async () => {
+      reservationService.validateAndReserve.and.resolveTo('RES-123');
+      reservationService.confirmReservation.and.resolveTo();
 
-    await expectAsync(
-      (service as any).updateProductStock(
-        {
-          id: 1,
-          title: 'Test Product',
-          description: 'Test',
-          price: 29.99,
-          imageUrl: 'http://image.test',
-          inStock: true,
-          stockCount: 2,
-        },
-        'Test Product'
-      )
-    ).toBeRejectedWith(
-      jasmine.objectContaining({
-        failure: jasmine.objectContaining({
-          reason: 'CHECKOUT_UNAVAILABLE',
-          productId: 1,
-        }),
-      }) as unknown as CheckoutError
-    );
-  });
+      const result = await service.placeOrder(validRequest);
 
-  it('should return zero available stock when a product is out of stock', () => {
-    const available = (service as any).getAvailableStock({ inStock: false, stockCount: 7 });
+      expect(result.placedAtIso).toMatch(
+        /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/
+      );
+      expect(new Date(result.placedAtIso).getTime()).toBeLessThanOrEqual(Date.now());
+    });
 
-    expect(available).toBe(0);
-  });
+    it('should preserve order total from request', async () => {
+      const customRequest: CheckoutRequest = {
+        ...validRequest,
+        total: 123.45,
+      };
 
-  it('should use default available stock when stockCount is missing', () => {
-    const available = (service as any).getAvailableStock({ inStock: true });
+      reservationService.validateAndReserve.and.resolveTo('RES-123');
+      reservationService.confirmReservation.and.resolveTo();
 
-    expect(available).toBe(5);
-  });
+      const result = await service.placeOrder(customRequest);
 
-  it('should execute simulated network latency helper', async () => {
-    const latencySpy = (service as any).simulateNetworkLatency as jasmine.Spy;
-    latencySpy.and.callThrough();
-    jasmine.clock().install();
-
-    try {
-      const pending = (service as any).simulateNetworkLatency();
-      jasmine.clock().tick(250);
-      await pending;
-    } finally {
-      jasmine.clock().uninstall();
-    }
-
-    expect(latencySpy).toHaveBeenCalled();
+      expect(result.total).toBe(123.45);
+    });
   });
 });

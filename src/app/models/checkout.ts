@@ -23,7 +23,11 @@ export interface CheckoutRequest {
 export type CheckoutFailureReason =
   | 'CHECKOUT_UNAVAILABLE'
   | 'PRODUCT_NOT_FOUND'
-  | 'INSUFFICIENT_STOCK';
+  | 'INSUFFICIENT_STOCK'
+  | 'STOCK_CHANGED'
+  | 'RESERVATION_EXPIRED'
+  | 'PAYMENT_DECLINED'
+  | 'INVALID_SHIPPING';
 
 export interface CheckoutFailure {
   reason: CheckoutFailureReason;

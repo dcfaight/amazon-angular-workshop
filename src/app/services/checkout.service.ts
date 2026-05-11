@@ -1,13 +1,8 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import {
-  CheckoutConfirmation,
-  CheckoutError,
-  CheckoutRequest,
-} from '../models/checkout';
+import { CheckoutConfirmation, CheckoutError, CheckoutRequest } from '../models/checkout';
 import { AppStateService } from './app-state.service';
 import { Product } from '../models/product';
-import { firstValueFrom } from 'rxjs';
+import { ReservationService } from './reservation.service';
 
 interface CheckoutLine {
   productId: number;
@@ -17,11 +12,9 @@ interface CheckoutLine {
 
 @Injectable({ providedIn: 'root' })
 export class CheckoutService {
-  private readonly apiUrl = 'http://192.168.1.5:3000/products';
-
   constructor(
     private appState: AppStateService,
-    private http: HttpClient
+    private reservationService: ReservationService
   ) {}
 
   async placeOrder(request: CheckoutRequest): Promise<CheckoutConfirmation> {
@@ -34,20 +27,56 @@ export class CheckoutService {
     await this.simulateNetworkLatency();
     this.applyDeterministicFailureMode(checkoutLines);
 
-    // Reserve inventory right before order confirmation.
-    await this.reserveStock(checkoutLines);
+    // Use ReservationService for atomic stock operations.
+    let reservationId: string | null = null;
 
-    await this.simulateNetworkLatency();
+    try {
+      // Step 1: Validate and reserve stock (5-minute hold).
+      reservationId = await this.reservationService.validateAndReserve(checkoutLines);
 
-    const totalItems = checkoutLines.reduce((sum, line) => sum + line.quantity, 0);
+      await this.simulateNetworkLatency();
 
-    return {
-      orderId: `ORD-${Date.now()}`,
-      placedAtIso: new Date().toISOString(),
-      total: request.total,
-      itemCount: totalItems,
-      etaDays: 3,
-    };
+      // Step 2: Confirm the reservation (persist stock changes).
+      await this.reservationService.confirmReservation(reservationId);
+
+      await this.simulateNetworkLatency();
+
+      const totalItems = checkoutLines.reduce((sum, line) => sum + line.quantity, 0);
+
+      return {
+        orderId: `ORD-${Date.now()}`,
+        placedAtIso: new Date().toISOString(),
+        total: request.total,
+        itemCount: totalItems,
+        etaDays: 3,
+      };
+    } catch (error) {
+      // Step 3: Cancel reservation on failure to free up stock for other customers.
+      if (reservationId) {
+        this.reservationService.cancelReservation(reservationId);
+      }
+
+      // Convert native errors to typed CheckoutError
+      if (error instanceof CheckoutError) {
+        throw error;
+      }
+
+      if (error instanceof Error) {
+        const reason = (error as any).reason || 'CHECKOUT_UNAVAILABLE';
+        throw new CheckoutError({
+          reason: reason as any,
+          message: error.message,
+          productId: (error as any).productId,
+          requestedQuantity: (error as any).requestedQuantity,
+          availableQuantity: (error as any).availableQuantity,
+        });
+      }
+
+      throw new CheckoutError({
+        reason: 'CHECKOUT_UNAVAILABLE',
+        message: 'Checkout failed. Please try again.',
+      });
+    }
   }
 
   private buildCheckoutLines(items: Product[]): CheckoutLine[] {
@@ -94,90 +123,8 @@ export class CheckoutService {
   }
 
   private async reserveStock(lines: CheckoutLine[]): Promise<void> {
-    for (const line of lines) {
-      const latestProduct = await this.getProductById(line.productId, line.title, line.quantity);
-      const availableStock = this.getAvailableStock(latestProduct);
-
-      if (!latestProduct.inStock || availableStock < line.quantity) {
-        throw new CheckoutError({
-          reason: 'INSUFFICIENT_STOCK',
-          message: `Stock changed for "${latestProduct.title}". Requested ${line.quantity}, but only ${availableStock} left.`,
-          productId: line.productId,
-          requestedQuantity: line.quantity,
-          availableQuantity: availableStock,
-        });
-      }
-
-      const nextStock = availableStock - line.quantity;
-      const updatedProduct: Product = {
-        ...latestProduct,
-        stockCount: nextStock,
-        inStock: nextStock > 0,
-      };
-
-      await this.updateProductStock(updatedProduct, line.title);
-    }
-  }
-
-  private async getProductById(
-    productId: number,
-    title: string,
-    requestedQuantity: number
-  ): Promise<Product> {
-    try {
-      const product = await firstValueFrom(this.http.get<Product>(`${this.apiUrl}/${productId}`));
-      if (!product) {
-        throw new CheckoutError({
-          reason: 'PRODUCT_NOT_FOUND',
-          message: `Product "${title}" is no longer available.`,
-          productId,
-          requestedQuantity,
-          availableQuantity: 0,
-        });
-      }
-
-      return product;
-    } catch (error) {
-      if (error instanceof CheckoutError) {
-        throw error;
-      }
-
-      if (error instanceof HttpErrorResponse && error.status === 404) {
-        throw new CheckoutError({
-          reason: 'PRODUCT_NOT_FOUND',
-          message: `Product "${title}" is no longer available.`,
-          productId,
-          requestedQuantity,
-          availableQuantity: 0,
-        });
-      }
-
-      throw new CheckoutError({
-        reason: 'CHECKOUT_UNAVAILABLE',
-        message: 'Unable to validate stock right now. Please try again.',
-      });
-    }
-  }
-
-  private async updateProductStock(product: Product, title: string): Promise<void> {
-    try {
-      await firstValueFrom(this.http.put<Product>(`${this.apiUrl}/${product.id}`, product));
-    } catch {
-      throw new CheckoutError({
-        reason: 'CHECKOUT_UNAVAILABLE',
-        message: `Could not reserve stock for "${title}". Please try again.`,
-        productId: product.id,
-      });
-    }
-  }
-
-  private getAvailableStock(product: Product): number {
-    if (!product.inStock) {
-      return 0;
-    }
-
-    const raw = product.stockCount ?? 5;
-    return Math.max(0, Math.floor(raw));
+    // Deprecated: now handled by ReservationService
+    throw new Error('Use ReservationService instead');
   }
 
   private async simulateNetworkLatency(): Promise<void> {
