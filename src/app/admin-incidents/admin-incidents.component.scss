@@ -379,6 +379,24 @@
   }
 }
 
+.comment-composer {
+  margin-top: 0.45rem;
+  display: grid;
+  gap: 0.4rem;
+
+  textarea {
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    background: #fff;
+    color: #0f172a;
+    font-size: 0.8rem;
+    line-height: 1.35;
+    padding: 0.45rem 0.55rem;
+    resize: vertical;
+    min-height: 64px;
+  }
+}
+
 .owner-pill,
 .postmortem-pill {
   display: inline-block;

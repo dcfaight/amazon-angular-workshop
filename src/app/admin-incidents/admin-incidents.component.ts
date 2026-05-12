@@ -43,9 +43,11 @@ export class AdminIncidentsComponent implements OnInit, OnDestroy {
   expandedIncident: number | null = null;
   notificationHistory: IncidentNotificationEntry[] = [];
   githubWriteToken = '';
+  sendingCommentIncidentId: number | null = null;
   readonly availableOwners = ['oncall-app', 'platform-lead', 'payments-sme', 'checkout-owner'];
   private readonly localOwners = new Map<number, string>();
   private readonly localPostmortemStates = new Map<number, PostmortemWorkflowState>();
+  private readonly commentDrafts = new Map<number, string>();
 
   constructor(
     private incidentService: IncidentService,
@@ -165,6 +167,50 @@ export class AdminIncidentsComponent implements OnInit, OnDestroy {
     this.githubWriteToken = '';
     localStorage.removeItem(this.githubTokenStorageKey);
     this.toastService.show('GitHub write token removed.');
+  }
+
+  getCommentDraft(incidentId: number): string {
+    return this.commentDrafts.get(incidentId) ?? '';
+  }
+
+  setCommentDraft(incidentId: number, value: string): void {
+    const trimmed = value;
+    if (!trimmed) {
+      this.commentDrafts.delete(incidentId);
+      return;
+    }
+
+    this.commentDrafts.set(incidentId, trimmed);
+  }
+
+  sendIncidentComment(incident: IncidentItem): void {
+    const draft = this.getCommentDraft(incident.id).trim();
+    if (!draft) {
+      this.toastService.show('Enter a comment before sending.');
+      return;
+    }
+
+    if (!this.hasGitHubWriteToken) {
+      this.toastService.show('Add a GitHub write token to send comments.');
+      return;
+    }
+
+    this.sendingCommentIncidentId = incident.id;
+    this.incidentService
+      .createIncidentComment(incident.number, draft, this.githubWriteToken)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.commentDrafts.delete(incident.id);
+          this.sendingCommentIncidentId = null;
+          this.toastService.show(`Comment synced to GitHub for #${incident.number}.`);
+          this.loadIncidents();
+        },
+        error: () => {
+          this.sendingCommentIncidentId = null;
+          this.toastService.show('Failed to sync comment to GitHub.');
+        },
+      });
   }
 
   getPostmortemIssueUrl(incident: IncidentItem): string {

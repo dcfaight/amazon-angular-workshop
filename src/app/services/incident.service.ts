@@ -120,6 +120,13 @@ export class IncidentService {
       .pipe(map(() => undefined));
   }
 
+  createIncidentComment(issueNumber: number, body: string, githubToken: string): Observable<void> {
+    const url = `${this.issuesUrl}/${issueNumber}/comments`;
+    return this.http
+      .post(url, { body }, { headers: this.getWriteHeaders(githubToken) })
+      .pipe(map(() => undefined));
+  }
+
   private mapIncident(record: GithubIssueRecord): IncidentItem {
     const labels = this.extractLabels(record.labels);
     const body = record.body ?? '';

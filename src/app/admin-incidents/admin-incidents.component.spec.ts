@@ -71,6 +71,7 @@ describe('AdminIncidentsComponent', () => {
       'updateIncidentAssignees',
       'addIncidentLabel',
       'removeIncidentLabel',
+      'createIncidentComment',
     ]);
     toastService = jasmine.createSpyObj<ToastService>('ToastService', ['show']);
 
@@ -78,6 +79,7 @@ describe('AdminIncidentsComponent', () => {
     incidentService.updateIncidentAssignees.and.returnValue(of(undefined));
     incidentService.addIncidentLabel.and.returnValue(of(undefined));
     incidentService.removeIncidentLabel.and.returnValue(of(undefined));
+    incidentService.createIncidentComment.and.returnValue(of(undefined));
 
     await TestBed.configureTestingModule({
       imports: [AdminIncidentsComponent],
@@ -283,5 +285,29 @@ describe('AdminIncidentsComponent', () => {
 
     expect(localStorage.getItem('incident-github-write-token')).toBeNull();
     expect(component.hasGitHubWriteToken).toBeFalse();
+  });
+
+  it('should not send incident comment without token', () => {
+    component.setCommentDraft(1, 'Status update in progress');
+
+    component.sendIncidentComment(mockIncidents[0]);
+
+    expect(incidentService.createIncidentComment).not.toHaveBeenCalled();
+    expect(toastService.show).toHaveBeenCalledWith('Add a GitHub write token to send comments.');
+  });
+
+  it('should send incident comment to GitHub when token is present', () => {
+    component.githubWriteToken = 'ghp_test';
+    component.setCommentDraft(1, 'Mitigation completed and monitoring.');
+
+    component.sendIncidentComment(mockIncidents[0]);
+
+    expect(incidentService.createIncidentComment).toHaveBeenCalledWith(
+      101,
+      'Mitigation completed and monitoring.',
+      'ghp_test'
+    );
+    expect(toastService.show).toHaveBeenCalledWith('Comment synced to GitHub for #101.');
+    expect(component.getCommentDraft(1)).toBe('');
   });
 });

@@ -242,6 +242,22 @@
               Send Teams
             </button>
           </div>
+          <div class="comment-composer">
+            <textarea
+              [ngModel]="getCommentDraft(incident.id)"
+              (ngModelChange)="setCommentDraft(incident.id, $event)"
+              placeholder="Post status update comment to this GitHub incident..."
+              rows="3"
+            ></textarea>
+            <button
+              type="button"
+              class="workflow-button"
+              (click)="sendIncidentComment(incident)"
+              [disabled]="sendingCommentIncidentId === incident.id"
+            >
+              {{ sendingCommentIncidentId === incident.id ? 'Sending...' : 'Post Comment' }}
+            </button>
+          </div>
         </div>
       </div>
 

@@ -260,4 +260,15 @@ describe('IncidentService', () => {
     expect(removeReq.request.headers.get('Authorization')).toBe('Bearer ghp_token');
     removeReq.flush({});
   });
+
+  it('should create an incident comment with auth headers', () => {
+    service.createIncidentComment(42, 'status update', 'ghp_token').subscribe();
+
+    const req = http.expectOne('https://api.github.com/repos/dcfaight/amazon-angular-workshop/issues/42/comments');
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({ body: 'status update' });
+    expect(req.request.headers.get('Authorization')).toBe('Bearer ghp_token');
+
+    req.flush({});
+  });
 });
