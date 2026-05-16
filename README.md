@@ -1,8 +1,8 @@
 # Amazon Angular Workshop
 
-![CI](https://img.shields.io/github/actions/workflow/status/your-org/amazon-angular-workshop/ci.yml?label=CI)
+![CI](https://github.com/dcfaight/amazon-angular-workshop/actions/workflows/ci.yml/badge.svg)
 
-An Angular 17 storefront app with:
+An Angular 18 storefront app with:
 
 - Guarded routes and sign-in flow
 - Multi-tenant product filtering
